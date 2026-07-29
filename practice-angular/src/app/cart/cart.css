@@ -1,0 +1,27 @@
+:host {
+   
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 50vh;
+}
+
+.data-table {
+    width: 50%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    text-align: center;
+    table-layout: fixed;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.data-table th {
+    background-color: #f2f2f2;
+}
