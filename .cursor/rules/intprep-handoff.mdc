@@ -1,0 +1,18 @@
+---
+description: intPrep interview workspace — load handoff context for new chats/machines
+alwaysApply: true
+---
+
+# intPrep agent rule
+
+This repo is a **frontend interview prep** workspace (JS, CSS, Angular, system design, scenarios, practice apps).
+
+## On every new chat (especially after clone)
+
+1. Read root `AGENTS.md` and `CHAT_CONTEXT.md` before large changes.
+2. Prefer extending existing guides via each folder’s `INDEX.md` — don’t duplicate topics.
+3. Practice app: `prevonir-interview-practice/` (`npm i && npm start`). Keep machine-coding **interview-simple**.
+4. q8 file explorer uses **local `isOpen`** on purpose; don’t “upgrade” to lifted Set unless asked.
+5. User wants deep explanations, examples, tradeoffs, and short spoken answers.
+
+Full decision log and artifact inventory: `CHAT_CONTEXT.md`.
