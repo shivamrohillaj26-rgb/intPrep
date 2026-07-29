@@ -1,0 +1,12 @@
+.card {
+  display: grid;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.danger {
+  margin-top: 8px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}

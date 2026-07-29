@@ -1,0 +1,16 @@
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.compare {
+  margin-top: 12px;
+}
+
+.compare p,
+.compare ul {
+  font-size: 14px;
+  color: #374151;
+}

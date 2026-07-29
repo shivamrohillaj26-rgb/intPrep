@@ -1,0 +1,60 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 0;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 13px;
+  user-select: none;
+}
+
+.row:hover {
+  background: #2a2d2e;
+}
+
+.row.selected {
+  background: #094771;
+}
+
+.icon {
+  width: 1.2em;
+  flex-shrink: 0;
+}
+
+.name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: none;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.row:hover .actions,
+.row.selected .actions {
+  display: inline-flex;
+}
+
+.actions button {
+  border: 0;
+  background: #3c3c3c;
+  color: #ddd;
+  border-radius: 3px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  background: #0e639c;
+}
+
+.actions button.danger:hover {
+  background: #a1260d;
+}

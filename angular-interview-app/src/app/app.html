@@ -1,0 +1,98 @@
+<main class="page-shell">
+  <section class="hero">
+    <p class="eyebrow">Frontend Developer Angular Interview Prep</p>
+    <h1>Angular demos for JavaScript and DSA interview questions</h1>
+    <p>
+      Each card connects one interview question to a minimal Angular implementation. Use this app to explain the UI use case, the data structure, and the complexity.
+    </p>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <h2>1. Debounced Search</h2>
+      <p>Typing quickly should create one API-style call after the user pauses.</p>
+      <input [ngModel]="searchQuery" (ngModelChange)="onSearchChange($event)" placeholder="Try typing angular" />
+      <div class="pill-row">
+        <span *ngFor="let result of searchResults" class="pill">{{ result }}</span>
+      </div>
+      <small>Recent calls: {{ apiCallLog.join(' | ') || 'none yet' }}</small>
+    </article>
+
+    <article class="card">
+      <h2>2. Infinite Scroll Loader</h2>
+      <p>Only a small page of items is appended. State is just the next index.</p>
+      <button type="button" (click)="loadMoreItems()">Load next {{ pageSize }}</button>
+      <small>Showing {{ visibleItems.length }} of {{ allItems.length }} generated items.</small>
+      <ul class="compact-list">
+        <li *ngFor="let item of visibleItems.slice(-pageSize)">{{ item }}</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <h2>3. Deep Clone</h2>
+      <p>Handles nested data, Date objects, arrays, and cyclic references with WeakMap.</p>
+      <button type="button" (click)="runCloneDemo()">Run clone demo</button>
+      <small>{{ cloneSummary }}</small>
+    </article>
+
+    <article class="card">
+      <h2>4. Longest Unique Substring</h2>
+      <p>Sliding window with a Map of last-seen indexes.</p>
+      <input [(ngModel)]="longestInput" placeholder="pwwkew" />
+      <strong>Answer: {{ longestAnswer }}</strong>
+    </article>
+
+    <article class="card">
+      <h2>5. Controllable Scheduler</h2>
+      <p>Schedule, pause, resume, and cancel a timeout while preserving remaining time.</p>
+      <div class="button-row">
+        <button type="button" (click)="scheduleTask()">Schedule</button>
+        <button type="button" (click)="pauseTask()">Pause</button>
+        <button type="button" (click)="resumeTask()">Resume</button>
+        <button type="button" (click)="cancelTask()">Cancel</button>
+      </div>
+      <small>{{ schedulerStatus }}</small>
+    </article>
+
+    <article class="card">
+      <h2>6. Autosave</h2>
+      <p>Debounce handles inactivity. setInterval is a safety check for dirty content.</p>
+      <textarea [ngModel]="editorText" (ngModelChange)="onEditorChange($event)" rows="4" placeholder="Type and wait 5 seconds"></textarea>
+      <small>{{ saveStatus }}</small>
+    </article>
+
+    <article class="card">
+      <h2>7. Merge Intervals Stream</h2>
+      <p>Intervals are merged after each insertion.</p>
+      <div class="input-row">
+        <input type="number" [(ngModel)]="intervalStart" aria-label="Interval start" />
+        <input type="number" [(ngModel)]="intervalEnd" aria-label="Interval end" />
+      </div>
+      <div class="button-row">
+        <button type="button" (click)="addInterval()">Add interval</button>
+        <button type="button" (click)="clearIntervals()">Clear</button>
+      </div>
+      <small>{{ mergedIntervals.length ? (mergedIntervals | json) : '[]' }}</small>
+    </article>
+
+    <article class="card">
+      <h2>8. Infinite Carousel</h2>
+      <p>Modulo arithmetic creates circular left/right navigation.</p>
+      <div class="carousel">
+        <button type="button" (click)="previousSlide()">Previous</button>
+        <strong>{{ activeSlide }}</strong>
+        <button type="button" (click)="nextSlide()">Next</button>
+      </div>
+      <small>Index {{ activeSlideIndex }} wraps from both ends.</small>
+    </article>
+
+    <article class="card">
+      <h2>9. Trie Autocomplete</h2>
+      <p>Prefix lookup walks the trie, then returns top suggestions by frequency.</p>
+      <input [(ngModel)]="autocompletePrefix" (ngModelChange)="updateSuggestions()" placeholder="an" />
+      <div class="pill-row">
+        <span *ngFor="let suggestion of suggestions" class="pill">{{ suggestion }}</span>
+      </div>
+    </article>
+  </section>
+</main>

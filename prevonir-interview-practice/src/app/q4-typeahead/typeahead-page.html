@@ -1,0 +1,28 @@
+<div class="page">
+  <h2>Q4 — Typeahead Search (4 approaches)</h2>
+  <p class="hint">
+    Try typing <code>de</code>, <code>mu</code>, <code>chen</code>.
+    Compare sync signals vs debounced RxJS pipelines.
+  </p>
+
+  <div class="compare card">
+    <strong>Which is better?</strong>
+    <p>
+      For real typeahead / HTTP search → <b>Signals + RxJS</b>
+      (<code>debounceTime</code> + <code>distinctUntilChanged</code> + <code>switchMap</code>).
+    </p>
+    <ul>
+      <li><b>1 Signals + async</b> — sync filter via <code>results$ | async</code></li>
+      <li><b>2 Signals + RxJS + async</b> — debounce/switchMap; best for APIs ✅</li>
+      <li><b>3 Getter/Setter + RxJS + async</b> — manual <code>[value]/(input)</code></li>
+      <li><b>4 Getter/Setter + ngModel + async</b> — classic; <code>[(ngModel)]</code> hits setter</li>
+    </ul>
+  </div>
+
+  <div class="grid3">
+    <app-typeahead-signals />
+    <app-typeahead-signals-rxjs />
+    <app-typeahead-accessor-rxjs />
+    <app-typeahead-ngmodel-rxjs />
+  </div>
+</div>

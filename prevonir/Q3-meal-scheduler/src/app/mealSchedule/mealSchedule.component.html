@@ -1,0 +1,58 @@
+<!-- =============================================
+     QUESTION 3 - HOTEL MEAL SCHEDULER
+     FILE: mealSchedule/mealSchedule.component.html
+
+     data-test-id attributes (MUST NOT CHANGE):
+     - meal-schedule   → tbody element
+     - date            → td for date column
+     - breakfast-list  → ul for breakfast column
+     - lunch-list      → ul for lunch column
+     - dinner-list     → ul for dinner column
+
+     KEY: iterate over scheduleRows (computed getter)
+     NOT over guestList directly
+     ============================================= -->
+
+<div class="layout-column align-items-center justify-content-center">
+  <section class="content layout-row align-items-center justify-content-center">
+    <div class="card content">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Breakfast</th>
+            <th>Lunch</th>
+            <th>Dinner</th>
+          </tr>
+        </thead>
+        <tbody data-test-id="meal-schedule">
+          <tr *ngFor="let row of scheduleRows; let idx=index; trackBy: trackByValue"
+              class="slide-up-fade-in"
+              id="schedule-{{idx}}">
+
+            <td data-test-id="date">{{ row.date }}</td>
+
+            <td>
+              <ul data-test-id="breakfast-list">
+                <li *ngFor="let g of row.breakfast">{{ g }}</li>
+              </ul>
+            </td>
+
+            <td>
+              <ul data-test-id="lunch-list">
+                <li *ngFor="let g of row.lunch">{{ g }}</li>
+              </ul>
+            </td>
+
+            <td>
+              <ul data-test-id="dinner-list">
+                <li *ngFor="let g of row.dinner">{{ g }}</li>
+              </ul>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,19 @@
+<header class="topbar">
+  <a routerLink="/" class="brand">Provenir HR Practice</a>
+  <nav>
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+    <a routerLink="/q1" routerLinkActive="active">Q1</a>
+    <a routerLink="/q2" routerLinkActive="active">Q2</a>
+    <a routerLink="/q3" routerLinkActive="active">Q3</a>
+    <a routerLink="/q4" routerLinkActive="active">Q4</a>
+    <a routerLink="/q5" routerLinkActive="active">Q5 Accordion</a>
+    <a routerLink="/q6" routerLinkActive="active">Q6 Button</a>
+    <a routerLink="/q7" routerLinkActive="active">Q7 Virtual</a>
+    <a routerLink="/q8" routerLinkActive="active">Q8 Explorer</a>
+    <a routerLink="/q9" routerLinkActive="active">Q9 JWT</a>
+  </nav>
+</header>
+
+<main>
+  <router-outlet />
+</main>

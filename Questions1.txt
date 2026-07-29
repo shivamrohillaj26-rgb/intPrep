@@ -1,0 +1,52 @@
+Debounce and Throttle with DSA twistProblem: Implement a debounce function, and then solve a problem where you need to limit API calls using debounce when the user types quickly in a search bar.
+⸻
+
+2. Infinite Scroll Loader
+
+Problem: Given a huge array (e.g., 10M items), implement a lazy loader that loads items as the user scrolls, with O(1) space and time efficiency.
+
+⸻
+
+3. Implement a Deep Clone
+
+Problem: Implement deep cloning of a nested object, handling edge cases like functions, dates, cyclic references.
+
+⸻
+
+4. Longest Substring Without Repeating Characters
+
+LeetCode 3 Variant:
+
+Solve using sliding window, optimize it to O(n) time.
+
+⸻
+
+5. Design a Scheduler (like setTimeout but controllable)
+
+Problem: Implement a TaskScheduler class where tasks are scheduled and can be paused, resumed, and canceled.
+
+⸻
+
+6. Auto-Save using setInterval & Debounce combo
+
+Problem: User is typing in a text editor. Auto-save must trigger every 5s of inactivity. Combine setInterval + debounce efficiently.
+
+⸻
+
+7. Merge Intervals in a Stream
+
+Problem: Given intervals coming in as a stream, merge overlapping ones and return the updated list after each insertion.
+
+⸻
+
+8. Infinite Carousel Navigation
+
+Problem: Implement an infinite carousel with left/right scroll. Edge case: works on circular data structures.
+
+⸻
+
+9. Trie for Autocomplete
+
+Problem: Build an autocomplete engine using Trie that returns top K suggestions based on frequency of past search terms.
+
+⸻

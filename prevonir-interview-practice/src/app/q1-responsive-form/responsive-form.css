@@ -1,0 +1,47 @@
+/* LCM(2,3)=6 → one grid supports thirds + halves + full */
+form {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+form input,
+form button {
+  width: 100%;
+}
+
+.first-name,
+.last-name,
+.age {
+  grid-column: span 2;
+}
+
+.address,
+button[type='submit'] {
+  grid-column: span 6;
+}
+
+.place-of-work,
+.job-title,
+.phone-number,
+.skype {
+  grid-column: span 3;
+}
+
+@media (max-width: 767px) {
+  form {
+    grid-template-columns: 1fr;
+  }
+
+  .first-name,
+  .last-name,
+  .age,
+  .address,
+  .place-of-work,
+  .job-title,
+  .phone-number,
+  .skype,
+  button[type='submit'] {
+    grid-column: span 1;
+  }
+}

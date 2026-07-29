@@ -1,0 +1,9 @@
+<section class="card" data-test-id="profile-card">
+  <h3>{{ user?.userName }}</h3>
+  <div>{{ user?.fName }} {{ user?.lName }}</div>
+  <div>{{ user?.email }}</div>
+  <div>{{ user?.phoneNo }}</div>
+  <div>{{ user?.state }}</div>
+
+  <button class="danger" data-test-id="logout-btn" (click)="onLogout()">Logout</button>
+</section>

@@ -1,0 +1,23 @@
+.shell {
+  display: block;
+  min-height: 420px;
+  max-width: 420px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.sidebar {
+  background: #252526;
+  color: #cccccc;
+  padding: 8px 4px;
+  overflow: auto;
+  min-height: 420px;
+}
+
+.side-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #bbbbbb;
+  padding: 6px 10px 10px;
+  font-weight: 600;
+}

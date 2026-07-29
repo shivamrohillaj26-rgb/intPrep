@@ -1,0 +1,21 @@
+<div class="page">
+  <h2>Q8 — File Explorer</h2>
+  <p class="hint">
+    Click folder to expand/collapse · <code>+F</code>/<code>+D</code> add file/folder inside ·
+    <code>×</code> deletes. Each folder keeps its own open/closed state (interview-simple).
+  </p>
+
+  <div class="shell card">
+    <aside class="sidebar">
+      <div class="side-title">EXPLORER</div>
+      @for (node of tree(); track node.id) {
+        <tree-node
+          [node]="node"
+          [depth]="0"
+          (add)="addChild($event.parentId, $event.type)"
+          (remove)="deleteNode($event)"
+        />
+      }
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,40 @@
+.btn {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* sizes */
+.sm {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.md {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+.lg {
+  padding: 12px 18px;
+  font-size: 16px;
+}
+
+/* variants */
+.primary {
+  background: #2563eb;
+  color: #fff;
+}
+.secondary {
+  background: #fff;
+  color: #111827;
+  border-color: #d1d5db;
+}
+.danger {
+  background: #dc2626;
+  color: #fff;
+}

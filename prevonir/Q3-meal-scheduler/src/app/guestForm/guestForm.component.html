@@ -1,0 +1,43 @@
+<!-- =============================================
+     QUESTION 3 - HOTEL MEAL SCHEDULER
+     FILE: guestForm/guestForm.component.html
+
+     KEY: Template reference variables (#nameInput etc.)
+     instead of [(ngModel)] — reasons in .ts file
+
+     data-test-id attributes (MUST NOT CHANGE):
+     - name-input    → guest name text input
+     - start-date    → start date input
+     - end-date      → end date input
+     - submit-button → Add to Menu button
+     ============================================= -->
+
+<div class="layout-column">
+  <div class="layout-row align-items-center justify-content-center mt-50">
+
+    <input #nameInput
+           class="mr-30"
+           type="text"
+           data-test-id="name-input"
+           required
+           placeholder="Guest Name" />
+
+    <input #startDateInput
+           class="mr-30"
+           type="date"
+           data-test-id="start-date"
+           required />
+
+    <input #endDateInput
+           class="mr-30"
+           type="date"
+           data-test-id="end-date"
+           required />
+
+  </div>
+  <div class="layout-row align-items-center justify-content-center mt-50">
+    <button data-test-id="submit-button"
+            class="m-30"
+            (click)="addGuest()">Add to Menu</button>
+  </div>
+</div>

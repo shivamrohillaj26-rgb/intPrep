@@ -1,0 +1,27 @@
+<div class="page">
+  <h2>Q9 — JWT Auth + Role Guards</h2>
+  <p class="hint">
+    Demo users:
+    <code>john / John@123</code> (user) ·
+    <code>admin / Admin@123</code> (admin+user).
+    Try opening Admin as john → redirected.
+  </p>
+
+  <nav class="nav card">
+    @if (!auth.isLoggedIn()) {
+      <a routerLink="/q9/login" routerLinkActive="active">Login</a>
+    } @else {
+      <a routerLink="/q9/dashboard" routerLinkActive="active">Dashboard</a>
+      @if (auth.hasRole('admin')) {
+        <a routerLink="/q9/admin" routerLinkActive="active">Admin</a>
+      }
+      <span class="who">
+        {{ auth.user()?.username }}
+        ({{ auth.user()?.roles?.join(', ') }})
+      </span>
+      <button type="button" (click)="logout()">Logout</button>
+    }
+  </nav>
+
+  <router-outlet />
+</div>

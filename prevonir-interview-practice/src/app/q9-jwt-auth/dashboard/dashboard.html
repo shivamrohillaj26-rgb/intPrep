@@ -1,0 +1,11 @@
+<section class="card">
+  <h3>Dashboard (any logged-in role)</h3>
+  <p>Protected by <code>jwtAuthGuard</code> only.</p>
+  <p>
+    Hello <strong>{{ auth.user()?.username }}</strong> —
+    roles: {{ auth.user()?.roles?.join(', ') }}
+  </p>
+  <p class="tiny">
+    Token (demo): <code>{{ auth.getToken()?.slice(0, 40) }}...</code>
+  </p>
+</section>
