@@ -1,0 +1,18 @@
+<!-- =============================================
+     QUESTION 3 - HOTEL MEAL SCHEDULER
+     FILE: app.component.html
+
+     KEY: [guestList]="guests" passes the array
+     as @Input() to MealSchedule component
+     ============================================= -->
+
+<nav class="app-header">
+  <div class="layout-row align-items-center justify-content-center">
+    <h4 id="app-title" class="app-title">Hotel Meal Schedule</h4>
+  </div>
+</nav>
+
+<guest-form (onGuestAdded)="onGuestAdded($event)"></guest-form>
+
+<!-- CRITICAL: [guestList]="guests" binding — without this MealSchedule gets no data -->
+<meal-schedule [guestList]="guests"></meal-schedule>

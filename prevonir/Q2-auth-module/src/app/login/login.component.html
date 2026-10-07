@@ -1,0 +1,40 @@
+<!-- =============================================
+     QUESTION 2 - USER AUTHENTICATION
+     FILE: login/login.component.html
+
+     data-test-id attributes (MUST NOT CHANGE):
+     - app-input-userName  → username input
+     - app-input-password  → password input
+     - login-button        → submit button
+     - login-error         → error message div
+     ============================================= -->
+
+<section>
+  <div class="layout-column">
+    <div class="layout-column">
+
+      <!-- Error shown only when showError = true -->
+      <div data-test-id="login-error" *ngIf="showError">
+        Invalid Credentials
+      </div>
+
+      <input type="text"
+             data-test-id="app-input-userName"
+             placeholder="User Name"
+             [(ngModel)]="userName" />
+
+      <input type="password"
+             data-test-id="app-input-password"
+             placeholder="Password"
+             [(ngModel)]="password" />
+
+      <div class="layout-row justify-content-center mt-20">
+        <!-- Disabled until BOTH fields are filled -->
+        <button data-test-id="login-button"
+                (click)="onLogin()"
+                [disabled]="!userName || !password">Login</button>
+      </div>
+
+    </div>
+  </div>
+</section>

@@ -1,0 +1,28 @@
+<!-- =============================================
+     QUESTION 2 - USER AUTHENTICATION
+     FILE: app.component.html
+
+     KEY: *ngIf on nav items based on isLoggedIn()
+     - Logged OUT → show Login link only
+     - Logged IN  → show Profile link only
+     ============================================= -->
+
+<div class="app-header">
+  <div class="layout-row align-items-center justify-content-center">
+    <h4 id="app-title" class="app-title">User Authentication</h4>
+  </div>
+</div>
+
+<nav class="layout-row justify-content-center mt-30" data-test-id="app-nav">
+  <a routerLink="/"
+     routerLinkActive="active"
+     data-test-id="login-router-link"
+     *ngIf="!appService.isLoggedIn()">Login</a>
+
+  <a routerLink="/profile"
+     routerLinkActive="active"
+     data-test-id="profile-router-link"
+     *ngIf="appService.isLoggedIn()">Profile</a>
+</nav>
+
+<router-outlet></router-outlet>

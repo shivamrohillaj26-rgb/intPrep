@@ -1,0 +1,17 @@
+.login {
+  display: grid;
+  gap: 12px;
+  max-width: 360px;
+}
+
+.error {
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

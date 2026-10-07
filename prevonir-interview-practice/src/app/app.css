@@ -1,0 +1,27 @@
+.topbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #111827;
+  color: #fff;
+}
+
+.brand {
+  color: #fff;
+  font-weight: 700;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 14px;
+}
+
+.topbar a {
+  color: #d1d5db;
+}
+
+.topbar a.active {
+  color: #fff;
+}

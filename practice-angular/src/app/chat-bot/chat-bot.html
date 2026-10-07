@@ -1,0 +1,21 @@
+<div class="chat-bot">
+    <div class="chat-bot-header">
+        <h1>Chat Bot</h1>
+    </div>
+    <div class="chat-bot-body" #chatBody>
+        <div class="chat-bot-message">
+           <div *ngFor="let message of chatHistory">
+            <div *ngIf="message.sender === 'user'">
+                <p>{{message.message}}</p>
+            </div>
+            <div *ngIf="message.sender === 'bot'">
+                <p>{{message.message}}</p>
+            </div>
+           </div>
+        </div>
+    </div>
+    <div class="chat-bot-footer">
+        <input class="chat-bot-input" type="text" placeholder="Message" [(ngModel)]="message" />
+        <button (click)="sendMessage()">Send</button>
+    </div>
+</div>

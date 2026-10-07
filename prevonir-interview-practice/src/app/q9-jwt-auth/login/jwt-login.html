@@ -1,0 +1,12 @@
+<section class="card form">
+  @if (error()) {
+    <div class="err">Invalid credentials</div>
+  }
+
+  <input placeholder="Username" [(ngModel)]="username" />
+  <input type="password" placeholder="Password" [(ngModel)]="password" />
+
+  <button type="button" (click)="onLogin()" [disabled]="!username || !password">
+    Login
+  </button>
+</section>

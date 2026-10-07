@@ -1,0 +1,16 @@
+.form {
+  display: grid;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.err {
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+button:disabled {
+  opacity: 0.5;
+}

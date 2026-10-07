@@ -1,0 +1,38 @@
+<div class="shell">
+  <header class="top">
+    <div class="brand">
+      <span class="logo">IDMS*</span>
+      <span class="sub">MFE shell · host :4200</span>
+    </div>
+
+    @if (auth.isLoggedIn()) {
+      <nav>
+        <a routerLink="/home" routerLinkActive="active">Home</a>
+        <a routerLink="/safety" routerLinkActive="active">Safety (remote)</a>
+        <a routerLink="/fleet" routerLinkActive="active">Fleet (remote)</a>
+        <a routerLink="/fleet/admin" routerLinkActive="active">Fleet admin</a>
+      </nav>
+
+      <div class="tools">
+        <label>
+          Region
+          <select [value]="ctx.selectedRegion()" (change)="onRegionChange($event)">
+            @for (r of regions; track r) {
+              <option [value]="r">{{ r }}</option>
+            }
+          </select>
+        </label>
+        <span class="user">{{ auth.user()?.name }} · {{ auth.user()?.role }}</span>
+        <button type="button" (click)="logout()">Logout</button>
+      </div>
+    }
+  </header>
+
+  <main>
+    <router-outlet />
+  </main>
+
+  <footer>
+    Native Federation demo · shared-auth singleton session · remotes on 4201 / 4202
+  </footer>
+</div>

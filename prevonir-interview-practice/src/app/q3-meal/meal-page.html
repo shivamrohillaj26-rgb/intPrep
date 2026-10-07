@@ -1,0 +1,10 @@
+<div class="page">
+  <h2>Q3 — Hotel Meal Scheduler</h2>
+  <p class="hint">
+    Concepts: <code>@Output</code> / <code>@Input</code>, ViewChild DOM reads,
+    getter for schedule rows, local Date range, <code>[...spread]</code> for CD.
+  </p>
+
+  <guest-form (guestAdded)="onGuestAdded($event)" />
+  <meal-schedule [guestList]="guests" />
+</div>

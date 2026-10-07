@@ -1,0 +1,19 @@
+<div class="page">
+  <h2>Q6 — Reusable Button (variants + sizes)</h2>
+  <p class="hint">
+    Concepts: <code>input()</code> API, <code>ng-content</code> projection, CSS variant classes.
+    Interview: keep API small — <code>variant</code>, <code>size</code>, <code>disabled</code>.
+  </p>
+
+  <div class="card row">
+    <ui-button variant="primary" size="sm">Primary sm</ui-button>
+    <ui-button variant="primary" size="md">Primary md</ui-button>
+    <ui-button variant="primary" size="lg">Primary lg</ui-button>
+  </div>
+
+  <div class="card row">
+    <ui-button variant="secondary">Secondary</ui-button>
+    <ui-button variant="danger">Danger</ui-button>
+    <ui-button variant="primary" [disabled]="true">Disabled</ui-button>
+  </div>
+</div>

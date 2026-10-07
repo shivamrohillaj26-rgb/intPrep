@@ -1,0 +1,38 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 50vh;
+}
+
+.chat-bot {
+    width: 50%;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.chat-bot-header {
+    background-color: #f2f2f2;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.chat-bot-body {
+    height: 400px;
+    overflow-y: auto;
+}
+
+.chat-bot-message {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-bot-input {
+    width: 70%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}

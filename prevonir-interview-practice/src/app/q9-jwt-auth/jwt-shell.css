@@ -1,0 +1,19 @@
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.who {
+  margin-left: auto;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+}

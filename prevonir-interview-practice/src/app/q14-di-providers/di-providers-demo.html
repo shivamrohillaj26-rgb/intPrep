@@ -1,0 +1,111 @@
+<p><a routerLink="/">← Home</a></p>
+
+<h1>Q14 — Where is this service provided?</h1>
+<p class="lead">
+  Do the five steps in order. The number after <strong>#</strong> is “which
+  <code>new</code> ran.” Same # = same object. Different # = two objects.
+</p>
+
+<section class="step">
+  <h2>Step 1 — <code>providedIn: 'root'</code> (whole app)</h2>
+  <p class="do">Look at the login box. Then open Home and come back.</p>
+  <div class="box">
+    <p>Logged in as <strong>{{ login.name }}</strong></p>
+    <p>LoginService instance <strong>#{{ login.instance }}</strong></p>
+  </div>
+  <p class="expect">
+    Expect: still <strong>#1</strong> after you leave and return. One login for the SPA.
+  </p>
+</section>
+
+<section class="step">
+  <h2>Step 2 — component <code>providers: [ScratchPad]</code> (each widget)</h2>
+  <p class="do">Add a pen on Desk A. Add a stapler on Desk B. Compare the two # numbers.</p>
+  <div class="row">
+    <app-desk-a />
+    <app-desk-b />
+  </div>
+  <p class="expect">
+    Expect: Desk A is <strong>#1</strong>, Desk B is <strong>#2</strong>. Pen does not appear on B.
+    Each desk created its own pad. Login in Step 1 is still shared.
+  </p>
+</section>
+
+<section class="step">
+  <h2>Step 3 — route <code>providers</code> vs this-page <code>providers</code></h2>
+  <p class="do">
+    +1 on <strong>both</strong> boxes. Note the two #s. Go <a routerLink="/">Home</a>, open Q14 again.
+  </p>
+
+  <div class="box">
+    <h3>A. Route — <code>PageNotepad</code> in <code>app.routes.ts</code></h3>
+    <p class="id">Instance <strong>#{{ notepad.instance }}</strong> · ticks {{ notepad.ticks }}</p>
+    <button type="button" (click)="notepad.tick()">+1 route notepad</button>
+    <p class="expect">
+      Expect after Home → Q14: <strong>same # and same ticks</strong>. Angular caches the
+      route injector on the Route. Home still cannot <code>inject(PageNotepad)</code>.
+    </p>
+  </div>
+
+  <div class="box">
+    <h3>B. This page — <code>VisitPad</code> on the component</h3>
+    <p class="id">Instance <strong>#{{ visit.instance }}</strong> · ticks {{ visit.ticks }}</p>
+    <button type="button" (click)="visit.tick()">+1 visit pad</button>
+    <p class="expect">
+      Expect after Home → Q14: <strong>new #</strong> and ticks back to 0. The page was
+      destroyed, so its providers died. This is the “reset when I leave” behavior.
+    </p>
+  </div>
+</section>
+
+<section class="step">
+  <h2>Step 4 — <code>appConfig.providers</code> (boot, still root)</h2>
+  <p class="do">Compare this # with Step 1 after you leave and come back.</p>
+  <div class="box">
+    <p>BootStamp instance <strong>#{{ boot.instance }}</strong></p>
+    <p>Registered in <code>app.config.ts</code>, not <code>providedIn: 'root'</code>.</p>
+  </div>
+  <p class="expect">
+    Expect: stays <strong>#1</strong> like login. Same count. Different bundle:
+    <code>app.config.ts</code> always <code>import</code>s <code>BootStamp</code>, so the
+    bundler cannot drop it. <code>LoginService</code> is only imported where used —
+    unused <code>providedIn: 'root'</code> classes can be tree-shaken. See MD Step 4.
+  </p>
+</section>
+
+<section class="step">
+  <h2>Step 5 — not provided</h2>
+  <p class="do">
+    Read the box. <code>FORGOTTEN</code> is only an <code>InjectionToken</code> — nobody
+    listed it in any <code>providers</code> array and it has no <code>providedIn</code>.
+  </p>
+  <div class="box warn">
+    <p>
+      <code>inject(FORGOTTEN, &#123; optional: true &#125;)</code> →
+      <strong>{{ forgotten === null ? 'null' : forgotten }}</strong>
+    </p>
+    <p>
+      Walk: page → route → root → <strong>NullInjector</strong>. Optional turns the throw
+      into <code>null</code>. Drop <code>optional</code> and this page would not boot
+      (<code>NullInjectorError: No provider for FORGOTTEN</code>).
+    </p>
+    <p>
+      Creating the token ≠ providing it. Same crash if a class is only
+      <code>@Injectable()</code> with no <code>providers</code> entry.
+    </p>
+  </div>
+</section>
+
+<section class="step muted">
+  <h2>Part B — recipes (how to build the value)</h2>
+  <p>Different topic: not “where,” but “how.” One page, four recipes.</p>
+  <ul>
+    <li><code>useValue</code> — API_URL is the string <code>{{ apiUrl }}</code></li>
+    <li><code>useClass</code> — inject Logger, get <code>{{ logger.kind }}</code></li>
+    <li><code>useFactory</code> — Analytics reads that URL → mode <code>{{ analytics.mode }}</code></li>
+    <li>
+      <code>useExisting</code> — OldLogger is the same object as Logger?
+      <strong>{{ sameLogger ? 'yes' : 'no' }}</strong>
+    </li>
+  </ul>
+</section>

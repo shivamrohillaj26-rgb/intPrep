@@ -1,0 +1,22 @@
+<div class="page">
+  <h2>Q5 — Expand / Collapse List</h2>
+  <p class="hint">
+    Concept: track <code>openId</code>, toggle on click, show body only when open.
+    Say: single-open accordion vs multi-open (<code>Set&lt;id&gt;</code>).
+  </p>
+
+  <div class="list card">
+    @for (item of items; track item.id) {
+      <div class="row">
+        <button class="head" type="button" (click)="toggle(item.id)">
+          <span>{{ item.title }}</span>
+          <span>{{ openId() === item.id ? '−' : '+' }}</span>
+        </button>
+
+        @if (openId() === item.id) {
+          <div class="body">{{ item.body }}</div>
+        }
+      </div>
+    }
+  </div>
+</div>

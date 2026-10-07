@@ -1,0 +1,45 @@
+<div class="page">
+  <a routerLink="/" class="back">← Home</a>
+  <h1>Q12 — Basic calculator</h1>
+  <p class="hint">
+    Interview-simple (~20 min): digits, <code>+ − × ÷</code>, <code>=</code>,
+    <code>C</code>, decimal. <strong>No <code>eval</code></strong>. Logic in one component.
+  </p>
+
+  <div class="calc">
+    <div class="display">{{ display }}</div>
+
+    <div class="keys">
+      <button type="button" class="fn wide" (click)="clear()">C</button>
+      <button type="button" class="op" (click)="pressOp('/')">÷</button>
+
+      <button type="button" (click)="pressDigit('7')">7</button>
+      <button type="button" (click)="pressDigit('8')">8</button>
+      <button type="button" (click)="pressDigit('9')">9</button>
+      <button type="button" class="op" (click)="pressOp('*')">×</button>
+
+      <button type="button" (click)="pressDigit('4')">4</button>
+      <button type="button" (click)="pressDigit('5')">5</button>
+      <button type="button" (click)="pressDigit('6')">6</button>
+      <button type="button" class="op" (click)="pressOp('-')">−</button>
+
+      <button type="button" (click)="pressDigit('1')">1</button>
+      <button type="button" (click)="pressDigit('2')">2</button>
+      <button type="button" (click)="pressDigit('3')">3</button>
+      <button type="button" class="op" (click)="pressOp('+')">+</button>
+
+      <button type="button" class="zero" (click)="pressDigit('0')">0</button>
+      <button type="button" (click)="pressDot()">.</button>
+      <button type="button" class="op" (click)="pressEquals()">=</button>
+    </div>
+  </div>
+
+  <section class="card talk">
+    <h2>Memorize (3 state fields)</h2>
+    <ul>
+      <li><code>display</code> — what user sees</li>
+      <li><code>previous</code> + <code>operator</code> — pending math</li>
+      <li><code>fresh</code> — next digit replaces display (after op/=)</li>
+    </ul>
+  </section>
+</div>

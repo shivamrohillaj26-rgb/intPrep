@@ -1,0 +1,133 @@
+<div class="page">
+  <a routerLink="/" class="back">← Home</a>
+  <h1>Q11 — Reactive forms</h1>
+  <p class="hint">
+    <code>FormArray</code> of controls (phones) + <code>FormArray</code> of
+    <code>FormGroup</code>s (nominees: name + phone).
+  </p>
+
+  <form class="card" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <label>
+      Name
+      <input formControlName="name" placeholder="Ada" />
+      @if (showError('name')) {
+        <span class="err">Name required (min 2 chars)</span>
+      }
+    </label>
+
+    <label>
+      Email
+      <input formControlName="email" type="email" placeholder="ada@example.com" />
+      @if (showError('email')) {
+        <span class="err">Valid email required</span>
+      }
+    </label>
+
+    <label>
+      Role
+      <select formControlName="role">
+        <option value="dev">Developer</option>
+        <option value="lead">Lead</option>
+        <option value="manager">Manager</option>
+      </select>
+    </label>
+
+    <!-- FormArray of FormControl -->
+    <div class="section-block" formArrayName="phones">
+      <div class="section-head">
+        <span>Phones (FormArray of controls)</span>
+        <button type="button" class="secondary" (click)="addPhone()">+ Add</button>
+      </div>
+
+      @for (ctrl of phones.controls; track $index; let i = $index) {
+        <div class="phone-row">
+          <label>
+            Phone {{ i + 1 }}
+            <input [formControlName]="i" placeholder="10 digits" inputmode="numeric" />
+            @if (showPhoneError(i)) {
+              <span class="err">Enter a 10-digit number</span>
+            }
+          </label>
+          <button
+            type="button"
+            class="danger"
+            (click)="removePhone(i)"
+            [disabled]="phones.length === 1"
+          >
+            Remove
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- FormArray of FormGroup — nominees -->
+    <div class="section-block" formArrayName="nominees">
+      <div class="section-head">
+        <span>Nominees (FormArray of FormGroups)</span>
+        <button type="button" class="secondary" (click)="addNominee()">+ Add</button>
+      </div>
+
+      @if (nominees.length === 0) {
+        <p class="empty-hint">No nominees yet — click + Add</p>
+      }
+
+      @for (group of nominees.controls; track $index; let i = $index) {
+        <div class="nominee-card" [formGroupName]="i">
+          <div class="nominee-title">
+            Nominee {{ i + 1 }}
+            <button
+              type="button"
+              class="danger compact"
+              (click)="removeNominee(i)"
+            >
+              Remove
+            </button>
+          </div>
+
+          <label>
+            Nominee name
+            <input formControlName="name" placeholder="Nominee name" />
+            @if (showNomineeError(i, 'name')) {
+              <span class="err">Name required (min 2 chars)</span>
+            }
+          </label>
+
+          <label>
+            Nominee phone
+            <input formControlName="phone" placeholder="10 digits" inputmode="numeric" />
+            @if (showNomineeError(i, 'phone')) {
+              <span class="err">Enter a 10-digit number</span>
+            }
+          </label>
+        </div>
+      }
+    </div>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  @if (submitted) {
+    <pre class="card out">{{ submitted | json }}</pre>
+  }
+
+  <section class="card talk">
+    <h2>Say in interview</h2>
+    <ul>
+      <li>
+        Simple list (phones) → <code>FormArray</code> of
+        <code>FormControl</code>; bind <code>[formControlName]="i"</code>.
+      </li>
+      <li>
+        Row with multiple fields (nominee name + phone) →
+        <code>FormArray</code> of <code>FormGroup</code>; bind
+        <code>[formGroupName]="i"</code> then
+        <code>formControlName="name"</code> /
+        <code>formControlName="phone"</code>.
+      </li>
+      <li>
+        Add = <code>push(create…())</code>, remove =
+        <code>removeAt(i)</code>.
+      </li>
+    </ul>
+  </section>
+</div>

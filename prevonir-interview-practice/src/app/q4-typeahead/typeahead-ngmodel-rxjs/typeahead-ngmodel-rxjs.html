@@ -1,0 +1,14 @@
+<section class="box">
+  <h3>4) Getter/Setter + ngModel + async</h3>
+  <p class="tiny">[(ngModel)] → setter → Subject → | async</p>
+
+  <input placeholder="Search city..." [(ngModel)]="query" />
+
+  <ul>
+    @for (city of results$ | async; track city) {
+      <li>{{ city }}</li>
+    } @empty {
+      <li class="muted">No results</li>
+    }
+  </ul>
+</section>

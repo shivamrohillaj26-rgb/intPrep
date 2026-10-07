@@ -1,0 +1,23 @@
+<!-- =============================================
+     QUESTION 2 - USER AUTHENTICATION
+     FILE: profile/profile.component.html
+
+     data-test-id attributes (MUST NOT CHANGE):
+     - profile-card  → outer section
+     - logout-btn    → logout button
+     ============================================= -->
+
+<section class="flex justify-content-center">
+  <div class="card">
+    <section data-test-id="profile-card">
+      <h3 class="mb-20">{{ user?.userName }}</h3>
+      <div class="mb-20">{{ user?.fName }} {{ user?.lName }}</div>
+      <div class="mb-20">{{ user?.email }}</div>
+      <div class="mb-20">{{ user?.phoneNo }}</div>
+      <div class="mb-20">{{ user?.state }}</div>
+      <button class="mb-15 danger outlined"
+              data-test-id="logout-btn"
+              (click)="onLogout()">Logout</button>
+    </section>
+  </div>
+</section>

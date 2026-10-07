@@ -1,0 +1,17 @@
+<div class="page">
+  <h2>Q7 — Big List Virtualization</h2>
+  <p class="hint">
+    10,000 rows, but DOM only keeps ~visible window.
+    Math: <code>start = scrollTop / itemHeight</code>, render slice, absolute position rows.
+  </p>
+
+  <div class="viewport card" (scroll)="onScroll($event)">
+    <div class="spacer" [style.height.px]="totalHeight">
+      @for (item of visibleItems(); track item.index) {
+        <div class="row" [style.top.px]="item.top" [style.height.px]="itemHeight">
+          {{ item.label }}
+        </div>
+      }
+    </div>
+  </div>
+</div>

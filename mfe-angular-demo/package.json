@@ -1,0 +1,42 @@
+{
+  "name": "mfe-angular-demo",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "start:shell": "ng serve shell",
+    "start:safety": "ng serve mfe-safety",
+    "start:fleet": "ng serve mfe-fleet",
+    "start:all": "concurrently -n shell,safety,fleet -c blue,green,magenta \"ng serve shell\" \"ng serve mfe-safety\" \"ng serve mfe-fleet\""
+  },
+  "private": true,
+  "packageManager": "npm@10.9.8",
+  "dependencies": {
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "es-module-shims": "^2.8.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-architects/native-federation-v4": "^21.2.10",
+    "@angular-devkit/build-angular": "^21.2.20",
+    "@angular/build": "^21.2.20",
+    "@angular/cli": "^21.2.20",
+    "@angular/compiler-cli": "^21.2.0",
+    "@softarc/native-federation-orchestrator": "^4.6.0",
+    "concurrently": "^10.0.4",
+    "jsdom": "^28.0.0",
+    "ng-packagr": "^21.2.0",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
+  }
+}

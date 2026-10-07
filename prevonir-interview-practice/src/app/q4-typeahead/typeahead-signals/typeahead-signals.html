@@ -1,0 +1,18 @@
+<section class="box">
+  <h3>1) Signals + async pipe</h3>
+  <p class="tiny">signal → toObservable → map(sync) → | async</p>
+
+  <input
+    placeholder="Search city..."
+    [value]="query()"
+    (input)="onInput($any($event.target).value)"
+  />
+
+  <ul>
+    @for (city of results$ | async; track city) {
+      <li>{{ city }}</li>
+    } @empty {
+      <li class="muted">No results</li>
+    }
+  </ul>
+</section>

@@ -1,0 +1,28 @@
+<div class="page">
+  <h2>Q2 — User Authentication</h2>
+  <p class="hint">
+    Concepts: singleton service, template-driven <code>[(ngModel)]</code>,
+    AuthGuard, nav toggle, router navigate.
+    Try wrong password first, then <code>John / John@123</code>.
+  </p>
+
+  <nav class="auth-nav card" data-test-id="app-nav">
+    @if (!auth.isLoggedIn()) {
+      <a
+        routerLink="/q2"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        data-test-id="login-router-link"
+        >Login</a
+      >
+    }
+
+    @if (auth.isLoggedIn()) {
+      <a routerLink="/q2/profile" routerLinkActive="active" data-test-id="profile-router-link"
+        >Profile</a
+      >
+    }
+  </nav>
+
+  <router-outlet />
+</div>

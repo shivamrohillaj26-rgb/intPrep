@@ -1,0 +1,73 @@
+<div class="page">
+  <a routerLink="/" class="back">← Home</a>
+  <h1>Q13 — Custom structural directive (*appFor)</h1>
+  <p class="hint">
+    Interview mini ngFor: <code>TemplateRef</code> + <code>ViewContainerRef</code> +
+    microsyntax <code>*appFor="let x of list"</code>.
+  </p>
+
+  <section class="card">
+    <h2>1. Demo</h2>
+    <div class="actions">
+      <button type="button" (click)="addCity()">Add</button>
+      <button type="button" (click)="removeLast()">Remove last</button>
+      <button type="button" (click)="shuffle()">Shuffle</button>
+    </div>
+
+    <ul class="list">
+      <li *appFor="let city of cities(); let i = index">
+        <span class="idx">{{ i }}</span> {{ city }}
+      </li>
+    </ul>
+
+    @if (cities().length === 0) {
+      <p class="empty">List empty — Add a city.</p>
+    }
+  </section>
+
+  <section class="card">
+    <h2>2. What the <code>*</code> desugars to</h2>
+    <p class="code">
+      &lt;li *appFor="let city of cities(); let i = index"&gt;…&lt;/li&gt;
+    </p>
+    <p class="arrow">↓ becomes</p>
+    <pre class="code block">
+&lt;ng-template
+  [appForOf]="cities()"
+  let-city
+  let-i="index"
+&gt;
+  &lt;li&gt;…&lt;/li&gt;
+&lt;/ng-template&gt;</pre>
+    <p class="note">
+      Input name must be <code>appForOf</code> when selector is <code>[appFor]</code>
+      — the <code>of</code> in microsyntax maps to <code>Of</code> on the input.
+    </p>
+  </section>
+
+  <section class="card talk">
+    <h2>Say in interview</h2>
+    <ul>
+      <li>
+        Structural directives reshape the DOM: they get a
+        <code>TemplateRef</code> (blueprint) and a <code>ViewContainerRef</code>
+        (where to stamp views).
+      </li>
+      <li>
+        <code>*</code> is sugar over <code>&lt;ng-template&gt;</code>.
+        <code>*appFor="let x of list"</code> → <code>[appForOf]="list"</code> +
+        <code>let-x</code>.
+      </li>
+      <li>
+        On change I <code>clear()</code> and
+        <code>createEmbeddedView(tpl, &#123; $implicit, index &#125;)</code>.
+        Real <code>*ngFor</code> / <code>&#64;for</code> also diff + trackBy — this
+        clone is the interview-simple version.
+      </li>
+      <li>
+        Attribute directive (Q10) styles/behavior on a host; structural directive
+        adds/removes embedded views.
+      </li>
+    </ul>
+  </section>
+</div>

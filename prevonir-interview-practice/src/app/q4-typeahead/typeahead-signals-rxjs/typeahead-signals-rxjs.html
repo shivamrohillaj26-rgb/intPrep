@@ -1,0 +1,18 @@
+<section class="box">
+  <h3>2) Signals + RxJS + async ✅</h3>
+  <p class="tiny">debounce + distinct + switchMap → | async</p>
+
+  <input
+    placeholder="Search city..."
+    [value]="query()"
+    (input)="onInput($any($event.target).value)"
+  />
+
+  <ul>
+    @for (city of results$ | async; track city) {
+      <li>{{ city }}</li>
+    } @empty {
+      <li class="muted">No results</li>
+    }
+  </ul>
+</section>

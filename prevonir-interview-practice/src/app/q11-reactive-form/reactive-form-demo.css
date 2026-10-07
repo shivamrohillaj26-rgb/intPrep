@@ -1,0 +1,155 @@
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: system-ui, sans-serif;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.hint {
+  color: #64748b;
+  margin-bottom: 1.25rem;
+}
+
+.hint code,
+.talk code {
+  font-size: 0.85em;
+  background: #f1f5f9;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+.card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.9rem;
+}
+
+input,
+select {
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+.err {
+  color: #dc2626;
+  font-size: 0.8rem;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #64748b;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+button.danger {
+  background: #dc2626;
+  align-self: flex-end;
+  margin-bottom: 0.85rem;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.section-block {
+  margin: 0.5rem 0 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.phone-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.phone-row label {
+  margin-bottom: 0.5rem;
+}
+
+.empty-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.nominee-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #f8fafc;
+}
+
+.nominee-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+button.danger.compact {
+  margin-bottom: 0;
+  align-self: auto;
+}
+
+.out {
+  font-size: 0.85rem;
+  background: #f8fafc;
+  overflow: auto;
+}
+
+.talk h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.talk ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.talk li {
+  margin-bottom: 0.5rem;
+}

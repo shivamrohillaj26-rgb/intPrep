@@ -1,0 +1,27 @@
+<div
+  class="row"
+  [style.paddingLeft.px]="depth() * 14 + 8"
+  (click)="onRowClick()"
+>
+  <span class="icon">{{ isFolder ? (isOpen() ? '📂' : '📁') : '📄' }}</span>
+  <span class="name">{{ node().name }}</span>
+
+  <span class="actions">
+    @if (isFolder) {
+      <button type="button" title="Add file" (click)="onAdd('file', $event)">+F</button>
+      <button type="button" title="Add folder" (click)="onAdd('folder', $event)">+D</button>
+    }
+    <button type="button" class="danger" title="Delete" (click)="onDelete($event)">×</button>
+  </span>
+</div>
+
+@if (isFolder && isOpen()) {
+  @for (child of node().children; track child.id) {
+    <tree-node
+      [node]="child"
+      [depth]="depth() + 1"
+      (add)="add.emit($event)"
+      (remove)="remove.emit($event)"
+    />
+  }
+}

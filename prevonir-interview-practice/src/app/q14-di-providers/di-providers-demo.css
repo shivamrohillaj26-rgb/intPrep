@@ -1,0 +1,50 @@
+.lead {
+  max-width: 40rem;
+}
+
+.step {
+  max-width: 44rem;
+  margin: 1.5rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid #c5d0e0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.step.muted {
+  background: #f6f7f9;
+}
+
+.do {
+  font-weight: 600;
+}
+
+.expect {
+  margin-bottom: 0;
+  color: #1a5c2e;
+}
+
+.box,
+.desk {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #eef3f9;
+}
+
+.box.warn {
+  background: #fdeeee;
+}
+
+.row {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.id {
+  font-size: 1.15rem;
+}
+
+.desk h3 {
+  margin-top: 0;
+}

@@ -1,0 +1,27 @@
+<section class="card login">
+  @if (showError) {
+    <div class="error" data-test-id="login-error">Invalid Credentials</div>
+  }
+
+  <input
+    type="text"
+    data-test-id="app-input-userName"
+    placeholder="User Name"
+    [(ngModel)]="userName"
+  />
+
+  <input
+    type="password"
+    data-test-id="app-input-password"
+    placeholder="Password"
+    [(ngModel)]="password"
+  />
+
+  <button
+    data-test-id="login-button"
+    (click)="onLogin()"
+    [disabled]="!userName || !password"
+  >
+    Login
+  </button>
+</section>

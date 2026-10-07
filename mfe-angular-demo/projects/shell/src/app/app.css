@@ -1,0 +1,101 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #1a1a1a;
+  background: linear-gradient(180deg, #eef2f8 0%, #f7f7f7 40%, #f7f7f7 100%);
+}
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: #12233f;
+  color: #f5f7fb;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.logo {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.sub {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+nav a {
+  color: #d7e2f8;
+  text-decoration: none;
+  font-size: 0.95rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+}
+
+nav a.active,
+nav a:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.tools select {
+  margin-left: 0.35rem;
+  border-radius: 4px;
+  border: 0;
+  padding: 0.2rem 0.35rem;
+}
+
+.user {
+  opacity: 0.9;
+}
+
+.tools button {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+}
+
+main {
+  flex: 1;
+  padding: 1.25rem;
+}
+
+footer {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.8rem;
+  color: #555;
+  border-top: 1px solid #e2e2e2;
+  background: #fff;
+}
