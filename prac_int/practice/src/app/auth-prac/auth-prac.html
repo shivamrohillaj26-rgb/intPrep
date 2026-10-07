@@ -1,0 +1,13 @@
+<div>
+    <h1>Auth Practice</h1>
+</div>
+
+<div class="buttons">
+    @if(authService.isLoggedIn) {
+        <button class="button" routerLink="/auth-prac/profile">Profile</button>
+    } @else {
+        <button class="button" routerLink="/auth-prac/login">Login</button>
+    }
+</div>
+
+<router-outlet></router-outlet>

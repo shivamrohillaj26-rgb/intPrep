@@ -1,0 +1,28 @@
+.item{
+    width: 100%;
+    display: flex;
+    cursor: pointer;
+    padding: 10px;
+    justify-content: space-between;
+    border: 0px solid lightgray;
+    border-radius: 5px;
+    background-color: white;
+    
+}
+.content{
+    padding: 10px;
+}
+.item-container{
+    width: 200%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid lightgray;
+    border-radius: 5px;
+    background-color: white;
+    /* padding: 10px; */
+}
+
+.item:hover{
+    background-color: lightgray;
+}

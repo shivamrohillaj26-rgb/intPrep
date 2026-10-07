@@ -1,0 +1,23 @@
+.profile{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    h1{
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    h3{
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+}
+.button{
+    background-color: darkgrey;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}

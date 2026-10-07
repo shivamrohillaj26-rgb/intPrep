@@ -1,0 +1,13 @@
+table{
+    width: 100%;
+    border-end-end-radius: 10px;
+    border-collapse: collapse;
+    padding: 20px;
+    border: 1px solid #ccc;
+    table-layout: fixed;
+    text-align: center;
+
+}
+td{
+    justify-content: center;
+}

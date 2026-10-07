@@ -1,0 +1,28 @@
+<div [style.padding-left.px]="20">
+  <div class="clickable">
+    @if (nodes()?.type === 'directory') {
+      <span (click)="toggleExpand()">{{ isExpanded() ? '-' : '+' }}</span>
+    }
+    <span (click)="toggleExpand()">
+      @for (part of highlightParts(nodes()?.name ?? ''); track $index) {
+        <span [class.match]="part.match">{{ part.text }}</span>
+      }
+    </span>
+    @if (nodes()?.type === 'directory') {
+      <span [style.padding-left.px]="20" (click)="addDirectory()">{{ ' +d ' + ' | ' }}</span>
+      <span (click)="addFile()">{{ ' -f ' }}</span>
+      <span (click)="onDeleteNode.emit(nodes()?.id!)">{{ ' -d ' }}</span>
+    }
+  </div>
+
+  @if (nodes()?.children && isExpanded()) {
+    @for (child of nodes()?.children; track child.id) {
+      <app-node-search
+        [nodes]="child"
+        [searchQuery]="searchQuery()"
+        [searchActive]="searchActive()"
+        (onDeleteNode)="deleteChild($event)"
+      />
+    }
+  }
+</div>

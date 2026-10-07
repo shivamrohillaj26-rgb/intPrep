@@ -1,0 +1,10 @@
+<div class="file-explorer">
+  <div class="file-explorer-header">
+    <h1>File Explorer</h1>
+  </div>
+  <div class="file-explorer-body">
+    @for(node of data; track node.id) {
+      <app-node (onDeleteNode) = "deleteNode($event)" [nodes]="node"></app-node>
+    }
+  </div>
+</div>

@@ -1,0 +1,19 @@
+<div [style.padding-left.px]="20">
+  <div class="clickable">
+    @if (nodes()?.type === 'directory') {
+      <span>{{ isExpanded() ? '-' : '+' }}</span>
+    }
+    <span (click)="toggle()">{{ nodes()?.name }}</span>
+    @if (nodes()?.type === 'directory') {
+      <span [style.padding-left.px]="20" (click)="addDirectory()">{{ ' +d ' + ' | ' }}</span>
+      <span (click)="addFile()">{{ ' -f ' }}</span>
+      <span (click)="onDeleteNode.emit(nodes()?.id!)">{{ ' -d ' }}</span>
+    }
+  </div>
+
+  @if (nodes()?.children && isExpanded()) {
+    @for (child of nodes()?.children; track child.id) {
+      <app-node-service [nodes]="child" (onDeleteNode)="deleteChild($event)" />
+    }
+  }
+</div>

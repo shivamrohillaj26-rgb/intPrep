@@ -1,0 +1,23 @@
+<div class="container">
+    <div class="row">
+        <h1>Collapsables</h1>
+    </div>
+
+    <div class="list">
+        @for (item of data; let index = $index; track item.title) {
+
+        <div class="item-container">
+
+            <button class="item" (click)="toggle(index)">
+                <span>{{ item.title }}</span>
+                <span>{{ isOpen === index ? '-' : '+' }}</span>
+            </button>
+            @if(isOpen === index){
+                <div class="content">
+                    <p>{{ item.content }}</p>
+                </div>
+            } 
+        </div>
+        }
+    </div>
+</div>
