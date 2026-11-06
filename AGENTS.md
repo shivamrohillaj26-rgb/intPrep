@@ -24,7 +24,13 @@ Read this file first in any new Cursor chat on this repo (including after clone 
 | `css-interview-prep/` | Box model, flex, grid, responsive forms |
 | `angular-interview-prep/` | Lifecycle, DI, signals, content/templates, unit testing |
 | `frontend-system-design/` | CRP, bundles, tree-shaking, pagination, WebSockets, auth, HLD |
+| `micro-frontends/` | MFE / Module Federation (overview, NUX split plan, interview story) |
+| `backend-interview-prep/` | Backend course 01–25 (BookNest example app). Keep it generic: no former-employer internals |
+| `mfe-angular-demo/` | Runnable Angular NF demo — **monorepo** workspace (shell + 2 remotes + shared-auth) |
+| `mfe-separate-repos/` | Same MFE demo as **polyrepo** (4 independent packages / “repos”) |
 | `scenario-based-questions/` | Architecture scenarios + Licious managerial |
+| `onetrust/` | **OneTrust interview hub** (prep plan + resume/MFE/CI-CD story) |
+| `goc/` | **Google Operations Center** FE Senior Specialist hub (JD, questions, CMS, STAR) |
 | `prevonir-interview-practice/` | Live Angular practice app |
 | `practice/` | Node JS scratch (`practice.js`, `polyfills.js`) |
 | `CHAT_CONTEXT.md` | **Full handoff** of prior chat decisions & built artifacts |
