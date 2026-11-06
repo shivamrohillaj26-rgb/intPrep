@@ -44,8 +44,8 @@ Read this file first in any new Cursor chat on this repo (including after clone 
 
 ## Git remotes (as of handoff)
 
-- Intended push target discussed: `git@github.com:Shivamr-nd/intprep.git`
-- Earlier empty target (other account): `shivamrohillaj26-rgb/intPrep` — SSH key already used on Shivamr-nd account
+- **Push target (origin):** `https://github.com/shivamrohillaj26-rgb/intPrep.git` (HTTPS; macOS keychain credentials). The SSH key on this laptop belongs to the Shivamr-nd account, so SSH cannot push here.
+- Do **not** push to `Shivamr-nd/intprep` (that is the work account; the repo is being deleted).
 
 ## Do not
 
