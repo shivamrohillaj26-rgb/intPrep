@@ -273,7 +273,114 @@ Function.prototype.myBind = function (thisArg, ...boundArgs) {
 };
 
 // ─────────────────────────────────────────────
-// PROMISE POLYFILLS
+// FULL PROMISE CONSTRUCTOR POLYFILL (interview)
+// ─────────────────────────────────────────────
+
+class MyPromise {
+  constructor(executor) {
+    this.state = 'pending';
+    this.value = undefined;
+    this.reason = undefined;
+    this.onFulfilled = [];
+    this.onRejected = [];
+
+    const resolve = (value) => {
+      if (this.state !== 'pending') return;
+      this.state = 'fulfilled';
+      this.value = value;
+      this.onFulfilled.forEach((fn) => fn(value));
+      this.onFulfilled = [];
+      this.onRejected = [];
+    };
+
+    const reject = (reason) => {
+      if (this.state !== 'pending') return;
+      this.state = 'rejected';
+      this.reason = reason;
+      this.onRejected.forEach((fn) => fn(reason));
+      this.onFulfilled = [];
+      this.onRejected = [];
+    };
+
+    try {
+      executor(resolve, reject);
+    } catch (err) {
+      reject(err);
+    }
+  }
+
+  then(onFulfilled, onRejected) {
+    return new MyPromise((resolve, reject) => {
+      const handleFulfilled = (value) => {
+        queueMicrotask(() => {
+          try {
+            if (typeof onFulfilled !== 'function') {
+              resolve(value);
+              return;
+            }
+            const result = onFulfilled(value);
+            if (result && typeof result.then === 'function') {
+              result.then(resolve, reject);
+            } else {
+              resolve(result);
+            }
+          } catch (err) {
+            reject(err);
+          }
+        });
+      };
+
+      const handleRejected = (reason) => {
+        queueMicrotask(() => {
+          try {
+            if (typeof onRejected !== 'function') {
+              reject(reason);
+              return;
+            }
+            const result = onRejected(reason);
+            if (result && typeof result.then === 'function') {
+              result.then(resolve, reject);
+            } else {
+              resolve(result);
+            }
+          } catch (err) {
+            reject(err);
+          }
+        });
+      };
+
+      if (this.state === 'fulfilled') {
+        handleFulfilled(this.value);
+      } else if (this.state === 'rejected') {
+        handleRejected(this.reason);
+      } else {
+        this.onFulfilled.push(handleFulfilled);
+        this.onRejected.push(handleRejected);
+      }
+    });
+  }
+
+  catch(onRejected) {
+    return this.then(undefined, onRejected);
+  }
+
+  static resolve(value) {
+    if (value instanceof MyPromise) return value;
+    return new MyPromise((resolve) => resolve(value));
+  }
+
+  static reject(reason) {
+    return new MyPromise((_, reject) => reject(reason));
+  }
+}
+
+// Demo (uncomment to try):
+// console.log(1);
+// MyPromise.resolve(2).then((v) => console.log(v));
+// console.log(3); // 1 3 2
+
+// ─────────────────────────────────────────────
+// PROMISE STATIC METHOD POLYFILLS (use native Promise)
 // ─────────────────────────────────────────────
 
 Promise.myAll = function (iterable) {

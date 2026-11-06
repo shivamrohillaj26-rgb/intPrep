@@ -67,7 +67,8 @@ Always put **auth before role**.
 > Compact token: header.payload.signature. Payload carries claims (sub, roles, exp). Server signs it; client sends it on requests. This demo fakes signature with `btoa` — real apps verify on backend.
 
 **Where store token?**  
-> Interview tradeoff: `localStorage` (XSS risk) vs HttpOnly cookie (CSRF considerations). Demo uses localStorage for simplicity.
+> Interview tradeoff: `localStorage` (XSS risk) vs HttpOnly cookie (CSRF considerations). Demo uses localStorage for simplicity.  
+> Deep dive: [10_FRONTEND_AUTH_SECURITY.md](../../../frontend-system-design/10_FRONTEND_AUTH_SECURITY.md)
 
 **FE role hide vs guard?**  
 > Hiding Admin link is UX. Real protection is `canActivate` + **API authorization**. Never trust UI alone.

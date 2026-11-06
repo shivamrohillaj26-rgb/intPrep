@@ -17,6 +17,12 @@ import { JwtDashboard } from './q9-jwt-auth/dashboard/dashboard';
 import { JwtAdmin } from './q9-jwt-auth/admin/admin';
 import { jwtAuthGuard } from './q9-jwt-auth/jwt-auth.guard';
 import { roleGuard } from './q9-jwt-auth/role.guard';
+import { PipeDirectiveDemo } from './q10-pipe-directive/pipe-directive-demo';
+import { ReactiveFormDemo } from './q11-reactive-form/reactive-form-demo';
+import { Calculator } from './q12-calculator/calculator';
+import { StructuralForDemo } from './q13-structural-for/structural-for-demo';
+import { DiProvidersDemo } from './q14-di-providers/di-providers-demo';
+import { PageNotepad } from './q14-di-providers/di-scope';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -53,6 +59,15 @@ export const routes: Routes = [
         data: { roles: ['admin'] },
       },
     ],
+  },
+  { path: 'q10', component: PipeDirectiveDemo },
+  { path: 'q11', component: ReactiveFormDemo },
+  { path: 'q12', component: Calculator },
+  { path: 'q13', component: StructuralForDemo },
+  {
+    path: 'q14',
+    component: DiProvidersDemo,
+    providers: [PageNotepad],
   },
   { path: '**', redirectTo: '' },
 ];

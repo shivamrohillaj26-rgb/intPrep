@@ -1,0 +1,106 @@
+.page {
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: system-ui, sans-serif;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.hint {
+  color: #64748b;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.hint code {
+  font-size: 0.85em;
+  background: #f1f5f9;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+.calc {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 0.85rem;
+}
+
+.display {
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 1.75rem;
+  text-align: right;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  margin-bottom: 0.65rem;
+  min-height: 2.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.keys button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 0;
+  font-size: 1.1rem;
+  cursor: pointer;
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.keys .fn {
+  background: #475569;
+}
+
+.keys .op {
+  background: #ea580c;
+  color: #fff;
+}
+
+.keys .wide {
+  grid-column: span 3;
+}
+
+.keys .zero {
+  grid-column: span 2;
+}
+
+.card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  margin-top: 1rem;
+}
+
+.talk h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.talk ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.talk li {
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.talk code {
+  font-size: 0.85em;
+  background: #f1f5f9;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}

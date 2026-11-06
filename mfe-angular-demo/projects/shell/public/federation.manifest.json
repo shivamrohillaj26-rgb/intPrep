@@ -1,0 +1,4 @@
+{
+  "mfe-safety": "http://localhost:4201/remoteEntry.json",
+  "mfe-fleet": "http://localhost:4202/remoteEntry.json"
+}

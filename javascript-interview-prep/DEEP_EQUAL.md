@@ -85,22 +85,153 @@ deepEqual(a, b):
 
 ---
 
-## 5. Core implementation (interview MVP)
+## 5. Understand it deeply (walk one example)
+
+Goal: decide if two values have the **same shape and same nested values**, even if they are **different references**.
+
+```js
+const a = { x: 1, nest: { y: 2 } };
+const b = { x: 1, nest: { y: 2 } };
+// a === b → false (different objects in memory)
+// deepEqual(a, b) → true (same structure)
+```
+
+### What the function does, step by step
+
+Think of it as a **tree walk** on both sides at once:
+
+```text
+deepEqual(a, b)
+│
+├─ Same by Object.is?  → true immediately
+│     (same number, same string, same ref, NaN≈NaN)
+│
+├─ Either is not a real object? → false
+│     (one number vs object, null vs {}, etc.)
+│
+├─ One array, one plain object? → false
+│
+├─ Different number of keys? → false
+│
+└─ For each key in a:
+      key missing on b? → false
+      else deepEqual(a[key], b[key])   ← recurse into nest
+```
+
+### Trace: `deepEqual({ x: 1, nest: { y: 2 } }, { x: 1, nest: { y: 2 } })`
+
+```text
+1. Object.is(a, b)? No (different refs)
+2. Both objects? Yes
+3. Both arrays or both not? Both plain → OK
+4. keys: ['x','nest'] vs ['x','nest'] — same length
+5. key 'x':  deepEqual(1, 1) → Object.is → true
+6. key 'nest': deepEqual({ y: 2 }, { y: 2 })
+      6a. different refs → keep going
+      6b. keys ['y'] / ['y']
+      6c. deepEqual(2, 2) → true
+7. All keys matched → true
+```
+
+### Trace that returns false
+
+```js
+deepEqual({ a: 1 }, { a: 1, b: 2 });
+// keys length 1 vs 2 → false immediately
+
+deepEqual([1, 2], { 0: 1, 1: 2 });
+// Array.isArray mismatch → false
+// (even though keys look similar)
+```
+
+**Mental model one-liner:**
+
+> Same as deep clone’s walk, but instead of copying each node, I ask “are these two nodes equal?” and bubble `true`/`false` up.
+
+---
+
+## 6. Interview-simple version (write this first)
+
+This is what you should code in a **5–8 min** whiteboard / HackerRank-style round.  
+Uses `Object.keys` (JSON-like data only) — same style as other DSA answers in this repo.
 
 ```js
 function deepEqual(a, b) {
-  // 1) Same value / same reference / NaN
+  // Same value, same reference, or NaN === NaN
   if (Object.is(a, b)) return true;
 
-  // 2) Must both be non-null objects
+  // null / primitives that didn't match above → not equal
+  // (typeof null === 'object', so null must be excluded)
   if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
     return false;
   }
 
-  // 3) Array vs plain object
+  // [1,2] should NOT equal { 0:1, 1:2 }
   if (Array.isArray(a) !== Array.isArray(b)) return false;
 
-  // 4) Keys
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+
+  for (const key of keysA) {
+    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+    if (!deepEqual(a[key], b[key])) return false;
+  }
+
+  return true;
+}
+```
+
+### Why each line (say while typing)
+
+| Line | Why |
+|---|---|
+| `Object.is(a, b)` | Handles primitives + same ref + `NaN` |
+| `typeof … !== 'object' \|\| null` | Stop recursion on numbers/strings; fix `typeof null` |
+| `Array.isArray` mismatch | Don’t treat arrays as plain objects |
+| `Object.keys` length | Fast fail if different key sets |
+| `hasOwnProperty` on `b` | Key must exist on both (order doesn’t matter) |
+| Recurse | Nested objects/arrays |
+
+### Tiny tests to run verbally
+
+```js
+deepEqual(1, 1);                 // true
+deepEqual(1, '1');               // false
+deepEqual(NaN, NaN);             // true
+deepEqual(null, null);           // true  (Object.is)
+deepEqual(null, {});             // false
+deepEqual({ a: 1 }, { a: 1 });   // true
+deepEqual({ a: 1 }, { a: 2 });   // false
+deepEqual([1, [2]], [1, [2]]);   // true
+deepEqual([1, 2], { 0: 1, 1: 2 }); // false
+```
+
+### `Object.keys` vs `Reflect.ownKeys` in interview
+
+| Use | When |
+|---|---|
+| **`Object.keys`** (simple version above) | Default interview — enumerable string keys only |
+| **`Reflect.ownKeys`** | They ask Symbols / non-enumerable / “complete” equal |
+
+Say: *“I’ll start with Object.keys for normal objects; I can switch to Reflect.ownKeys if we need Symbols.”*
+
+---
+
+## 7. Slightly stronger MVP (`Reflect.ownKeys`)
+
+Same algorithm; only the key listing changes. Use if they want thoroughness.
+
+```js
+function deepEqual(a, b) {
+  if (Object.is(a, b)) return true;
+
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+    return false;
+  }
+
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+
   const keysA = Reflect.ownKeys(a);
   const keysB = Reflect.ownKeys(b);
   if (keysA.length !== keysB.length) return false;
@@ -133,7 +264,7 @@ Array.isArray({ 0: 1, 1: 2 });   // false
 
 ---
 
-## 6. Special types (impress follow-up)
+## 8. Special types (impress follow-up)
 
 ```js
 function deepEqual(a, b, seen = new WeakMap()) {
@@ -205,7 +336,7 @@ Without `seen`, infinite recursion → stack overflow.
 
 ---
 
-## 7. Pair with deep clone (classic combo ask)
+## 9. Pair with deep clone (classic combo ask)
 
 ```js
 const original = { user: { name: 'Ada' }, tags: ['js', 'fe'] };
@@ -223,7 +354,7 @@ original === copy;         // false — different references
 
 ---
 
-## 8. vs Lodash `_.isEqual` / Node `assert.deepStrictEqual`
+## 10. vs Lodash `_.isEqual` / Node `assert.deepStrictEqual`
 
 In interviews they want **your** recursion, not library calls.
 
@@ -239,7 +370,7 @@ JSON.stringify(a) === JSON.stringify(b);
 
 ---
 
-## 9. Complexity
+## 11. Complexity
 
 | | |
 |---|---|
@@ -250,7 +381,7 @@ For UI: don’t deep-equal huge Redux trees every render — use selectors / ref
 
 ---
 
-## 10. Frontend where it shows up
+## 12. Frontend where it shows up
 
 | Use | Why deep equal |
 |---|---|
@@ -264,7 +395,7 @@ For UI: don’t deep-equal huge Redux trees every render — use selectors / ref
 
 ---
 
-## 11. Common mistakes
+## 13. Common mistakes
 
 | Mistake | Fix |
 |---|---|
@@ -277,7 +408,109 @@ For UI: don’t deep-equal huge Redux trees every render — use selectors / ref
 
 ---
 
-## 12. Mini test cases (practice)
+## 14. Variant — order-insensitive arrays of primitives
+
+Interview twist: treat `[1, 2]` as equal to `[2, 1]` when elements are **primitives** (multiset / bag equality). Nested objects usually stay **order-sensitive** — **clarify**.
+
+### When they want this
+
+Tag lists, id sets dumped as arrays, “same items, different sort.”
+
+### Approach
+
+For an array whose elements are all primitives (`string | number | boolean | null | undefined | symbol | bigint`):
+
+1. Same length (after counting)
+2. Same multiset — frequency map, not sort-only if you must preserve duplicate counts
+
+Sorting works for primitives that share a total order:
+
+```js
+function samePrimitiveMultiset(a, b) {
+  if (a.length !== b.length) return false;
+  const sa = a.slice().sort();
+  const sb = b.slice().sort();
+  for (let i = 0; i < sa.length; i++) {
+    if (!Object.is(sa[i], sb[i])) return false;
+  }
+  return true;
+}
+```
+
+Frequency map (handles `NaN` via `Object.is` / careful keys):
+
+```js
+function samePrimitiveMultiset(a, b) {
+  if (a.length !== b.length) return false;
+  const counts = new Map();
+
+  for (const x of a) {
+    let found = false;
+    for (const [k, n] of counts) {
+      if (Object.is(k, x)) {
+        counts.set(k, n + 1);
+        found = true;
+        break;
+      }
+    }
+    if (!found) counts.set(x, 1);
+  }
+
+  for (const x of b) {
+    let key = null;
+    for (const k of counts.keys()) {
+      if (Object.is(k, x)) {
+        key = k;
+        break;
+      }
+    }
+    if (key === null) return false;
+    const n = counts.get(key) - 1;
+    if (n === 0) counts.delete(key);
+    else counts.set(key, n);
+  }
+  return counts.size === 0;
+}
+```
+
+Simpler interview version when no `NaN`/`-0` games: `Map` with values as keys + sort fallback.
+
+### Hook into `deepEqual`
+
+```js
+function deepEqual(a, b, opts = {}) {
+  // ... Object.is, null, type gates ...
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (
+      opts.orderInsensitivePrimitives &&
+      a.every(isPrimitive) &&
+      b.every(isPrimitive)
+    ) {
+      return samePrimitiveMultiset(a, b);
+    }
+    if (a.length !== b.length) return false;
+    return a.every((v, i) => deepEqual(v, b[i], opts));
+  }
+  // ... objects ...
+}
+
+function isPrimitive(v) {
+  return v === null || (typeof v !== 'object' && typeof v !== 'function');
+}
+```
+
+### Say aloud
+
+> Default deep equal is position-sensitive for arrays. If they want order-insensitive, I only apply multiset compare when both sides are arrays of primitives; nested structures stay ordered unless they explicitly ask otherwise. Sorting is fine for numbers/strings; I use frequency counts if NaN matters.
+
+### Trap
+
+`[{a:1},{a:2}]` vs `[{a:2},{a:1}]` is **not** solved by sorting — that’s multiset of objects (hard). Push back: “only primitives” or “normalize then compare.”
+
+---
+
+## 15. Mini test cases (practice)
 
 ```js
 deepEqual(1, 1);                         // true
@@ -293,7 +526,7 @@ deepEqual({ b: 2, a: 1 }, { a: 1, b: 2 }); // true
 
 ---
 
-## 13. Interview Q&A
+## 16. Interview Q&A
 
 **Q: Can you make a question like deep clone for equality?**  
 > Yes — `deepEqual(a, b)` is the standard pair. Same recursive walk; return boolean instead of copying.
@@ -309,18 +542,26 @@ deepEqual({ b: 2, a: 1 }, { a: 1, b: 2 }); // true
 
 ---
 
-## 14. 20-second spoken answer
+## 17. Spoken answers
 
-> Deep equal recursively compares structure: if `Object.is` matches we’re done; otherwise both must be objects of the same kind (array vs array), with the same keys, and every nested value deep-equal. I’d use `Object.is` for `NaN`, reject array-vs-object, and for cycles keep a WeakMap of pairs already being compared — same recursion family as deep clone, but boolean result instead of a copy.
+### 20s — what is deep equal?
+
+> `===` checks identity. Deep equal walks both values and checks nested structure: same keys, same kinds (array vs object), and every nested value deep-equal. I start with `Object.is` so `NaN` matches.
+
+### 45s — how I’d implement it
+
+> First `Object.is` — if true, done. If either isn’t a non-null object, false. If one is an array and the other isn’t, false. Then compare `Object.keys` lengths, and for each key recurse. That’s enough for nested plain objects and arrays. If they ask Symbols I’d switch to `Reflect.ownKeys`; for cycles I’d track comparing pairs in a WeakMap.
 
 ---
 
-## 15. Practice checklist
+## 18. Practice checklist
 
-- [ ] Write MVP `deepEqual` in &lt; 10 minutes  
+- [ ] Write the **simple `Object.keys` version** from memory in &lt; 8 minutes  
+- [ ] Trace one nested true case and one false case out loud  
 - [ ] Handle `null`, arrays, nested objects  
 - [ ] Explain `Object.is` vs `===`  
-- [ ] Add Date + cycle follow-up  
+- [ ] Know when to upgrade to `Reflect.ownKeys` / Date / cycles  
+- [ ] Order-insensitive primitive arrays variant  
 - [ ] Show `deepClone` then `deepEqual` demo  
 - [ ] Say when *not* to deep-equal in React render paths  
 
@@ -332,4 +573,5 @@ deepEqual({ b: 2, a: 1 }, { a: 1, b: 2 }); // true
 |---|---|
 | Deep clone implementation | [DEEP_CLONE.md](./DEEP_CLONE.md) |
 | Short DSA entry | [DSA_FRONTEND_JS.md](./DSA_FRONTEND_JS.md) §18 |
+| Path / case utils | [OBJECT_PATH_UTILS.md](./OBJECT_PATH_UTILS.md) |
 | Type coercion (`==` traps) | [TYPE_COERCION.md](./TYPE_COERCION.md) |

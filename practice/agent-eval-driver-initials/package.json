@@ -1,0 +1,11 @@
+{
+  "name": "agent-eval-driver-initials",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "eval": "vitest run hidden/display-initials.spec.ts"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

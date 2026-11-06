@@ -85,6 +85,38 @@ For `0.x` versions, caret rules are stricter (many treat `^0.2.3` as only patch 
 
 ---
 
+**`app.config.ts` vs `angular.json` (runtime vs CLI):** [ANGULAR_APP_CONFIG_AND_ANGULAR_JSON.md](./ANGULAR_APP_CONFIG_AND_ANGULAR_JSON.md)
+
+## 2b. `package.json` vs `package-lock.json` vs `angular.json`
+
+Interview favorite — three different jobs:
+
+| File | Owner | Job |
+|---|---|---|
+| **`package.json`** | npm / Node | Project **dependencies + scripts** (`dependencies`, `devDependencies`, `"start": "ng serve"`). Versions often as **ranges** (`^19.0.0`). |
+| **`package-lock.json`** | npm (auto) | **Exact tree** that was installed — every package + nested dep + integrity hash. Makes `npm ci` reproducible. **Don’t hand-edit.** |
+| **`angular.json`** | Angular CLI | **Workspace / build config** — apps/libs, `sourceRoot`, build/serve/test targets, budgets, styles, assets, file replacements. Not about npm versions. |
+
+```text
+package.json        → WHAT libraries you depend on (+ npm scripts)
+package-lock.json   → WHICH exact versions got installed
+angular.json        → HOW Angular CLI builds/serves YOUR app
+```
+
+**Spoken (30s):**
+
+> `package.json` declares dependencies and scripts with version ranges. `package-lock.json` freezes the exact install tree so CI matches my laptop. `angular.json` is Angular CLI workspace config — projects, build options, assets, budgets — it doesn’t replace the lockfile or list npm packages.
+
+**Quick traps**
+
+| Trap | Truth |
+|---|---|
+| “angular.json is like package.json” | No — CLI project config vs npm metadata |
+| Delete lockfile casually | Breaks reproducible installs |
+| Put API URLs only in angular.json | Often env/`fileReplacements` / runtime config instead |
+
+---
+
 ## 3. Why do we need `package-lock.json`?
 
 ### Say this
@@ -235,6 +267,39 @@ CI/devs run `npm ci` / `npm install`.
 
 If lockfile exists and is in sync → closer to deterministic.  
 If not → npm picks latest allowed versions in ranges.
+
+---
+
+## 7b. What is an npm registry? (Optum-style)
+
+### Say this
+
+> An **npm registry** is a server that hosts package tarballs and metadata. The default public one is `https://registry.npmjs.org`. Companies often run a **private registry** (Verdaccio, GitHub Packages, Azure Artifacts, JFrog Artifactory) for internal libraries.
+
+### Config
+
+```ini
+# .npmrc
+registry=https://registry.npmjs.org/
+@org:registry=https://npm.mycompany.com/
+//npm.mycompany.com/:_authToken=${NPM_TOKEN}
+```
+
+Scoped packages (`@org/logging`) can point at a different registry than the default.
+
+### Package not on the public registry — options
+
+| Method | When |
+|---|---|
+| Private registry (`npm publish` + `.npmrc`) | **Best** for internal shared libs |
+| `npm install git+https://…` | Quick / source-based |
+| `npm install ../path` or `"file:../lib"` | Local / monorepo hacking |
+| Verdaccio / Artifactory proxy | Cache public + host private |
+| Vendor tarball `npm install ./pkg.tgz` | Air-gapped / rare |
+
+Interview line:
+
+> I’d publish `@org/logging` to our private registry and configure `.npmrc` so installs resolve `@org/*` there. For a one-off, `file:` or git URL works, but a registry scales better.
 
 ---
 
@@ -493,6 +558,10 @@ Responsibilities:
 - dev server  
 
 Don’t say “Angular is Webpack” in 2026 blindly — say **build tool / bundler**, and that CLI abstracts it.
+
+**Deep dive (ESM + Webpack → esbuild/Vite timeline):**  
+[ANGULAR_BUILD_ESM_WEBPACK_ESBUILD.md](./ANGULAR_BUILD_ESM_WEBPACK_ESBUILD.md)  
+**Feature-by-version sheet:** [ANGULAR_VERSION_FEATURES.md](./ANGULAR_VERSION_FEATURES.md)
 
 ---
 

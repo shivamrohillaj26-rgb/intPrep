@@ -358,6 +358,7 @@ Promise.any        -> first success
 - [ ] Explain all/allSettled/race/any
 - [ ] Predict Promise vs setTimeout output
 - [ ] Write a small `fetch` style Promise chain
+- [ ] Implement `MyPromise` polyfill ← [POLYFILLS_README.md](./POLYFILLS_README.md) §18b
 
 ---
 
@@ -366,3 +367,5 @@ Promise.any        -> first success
 > `try/catch` around `promise.then(...)` does **not** catch throws inside the async handler. Use `.catch`, or `async/await` with `try/catch` around `await`. Long resolved-`.then` chains can also block UI via microtask starvation (see `EVENT_LOOP.md`).
 
 See also: `TRICKY_10_FRONTEND_QUESTIONS.md` Q1 & Q5.
+
+**Polyfills:** full constructor + `all`/`race`/`allSettled`/`any` in [POLYFILLS_README.md](./POLYFILLS_README.md) and `practice/polyfills.js`.

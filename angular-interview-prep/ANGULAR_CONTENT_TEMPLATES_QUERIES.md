@@ -613,6 +613,37 @@ Interview line:
 
 > `TemplateRef` is the blueprint; `ViewContainerRef` is the place you stamp it.
 
+### Custom structural directive (mini `*ngFor`)
+
+Live practice: `prevonir-interview-practice` **`/q13`** (`*appFor`).
+
+```ts
+@Directive({ selector: '[appFor]' })
+export class AppForDirective<T> {
+  readonly appForOf = input<T[] | null>(null); // *appFor="let x of list"
+  private tpl = inject(TemplateRef<{ $implicit: T; index: number }>);
+  private vcr = inject(ViewContainerRef);
+
+  constructor() {
+    effect(() => {
+      const items = this.appForOf() ?? [];
+      this.vcr.clear();
+      items.forEach((item, index) =>
+        this.vcr.createEmbeddedView(this.tpl, { $implicit: item, index }),
+      );
+    });
+  }
+}
+```
+
+```html
+<li *appFor="let city of cities; let i = index">{{ i }} — {{ city }}</li>
+```
+
+**Microsyntax:** `of` → input suffix `Of` → `[appForOf]`. Context keys (`$implicit`, `index`) become `let city` / `let i = index`.
+
+**Say:** Attribute directives decorate a host; structural directives stamp/clear embedded views. Real `*ngFor` / `@for` also diff + `track`; interviews often want the clear + `createEmbeddedView` version.
+
 ---
 
 # PART F — Putting it all together
@@ -754,6 +785,49 @@ A: Multi-slot projection — routes matching elements/attributes into specific s
 
 ---
 
+## 28. CDK Portal vs `ng-content` / `ViewContainerRef` (Persistent follow-up)
+
+Interview prompt:
+
+> Difference between ContentChild, ViewChild, content projection, `ng-content`, and Portal?
+
+### Short map
+
+| Concept | What it does |
+|---|---|
+| **`ng-content`** | Projects **parent’s DOM** into child slots (composition) |
+| **Content projection** | The pattern; `ng-content` is the mechanism |
+| **`ViewChild`** | Query something in **this** component’s template |
+| **`ContentChild`** | Query something in **projected** content |
+| **CDK Portal** | Imperative API to render a template/component **into an outlet** (often overlays/modals) |
+
+### Portal in one breath
+
+> A **Portal** is portable UI: `TemplatePortal` or `ComponentPortal` attached to a `CdkPortalOutlet` (or overlay). Unlike `ng-content`, the parent doesn’t declare the slot in the child’s template at compile time — you **attach/detach** programmatically. Great for modals, toasts, tooltips via Overlay.
+
+```ts
+// conceptual
+const portal = new ComponentPortal(DialogComponent);
+overlayRef.attach(portal);
+```
+
+vs `ng-content`:
+
+```html
+<!-- declarative projection -->
+<app-card><h2 header>Title</h2></app-card>
+```
+
+vs `ViewContainerRef.createComponent`:
+
+> Same family (dynamic render). Portal + Overlay is the CDK-packaged pattern for floating UI; VCR is the lower-level primitive.
+
+### Spoken combo (add Portal)
+
+> `ng-content` is declarative projection. ViewChild/ContentChild are queries into view vs projected content. Portal is CDK’s way to teleport a template or component into an outlet — typically overlays — attach/detach instead of projecting through the child’s template.
+
+---
+
 ## Quick cheat sheet
 
 ```text
@@ -763,4 +837,5 @@ ng-container    → no DOM wrapper
 ngTemplateOutlet→ stamp template + context
 ViewChild       → query my template
 ContentChild    → query projected content
+CDK Portal      → attach template/component to outlet (overlays)
 ```

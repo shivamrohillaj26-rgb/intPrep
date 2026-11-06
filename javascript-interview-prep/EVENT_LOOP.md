@@ -7,9 +7,23 @@ This guide is written for frontend interviews where the interviewer shows a code
 You will learn:
 
 - How the event loop actually works
+- **Who queues what** — browser/host vs JS engine (V8) — see **§2**
 - Exact preference / priority order
 - A step-by-step method to solve any output question
 - Many tricky examples with full reasoning
+- More spoken variants — see **§14**
+
+---
+
+## Interview answers (say these first)
+
+### 60–75s — “Explain the event loop”
+
+> JavaScript is single-threaded: the **engine** (like V8) has one **call stack**, so only one piece of JS runs at a time. Async work isn’t done by the engine alone — the **browser host** provides Web APIs for timers, network, and DOM. When you call `setTimeout` or `fetch`, the host does that work outside JS; when it finishes, it **queues a callback as a task**. Promises schedule **microtasks** closer to the engine. The **event loop** — also part of the host — keeps checking: when the stack is empty, drain **all microtasks**, maybe paint, then run **one macrotask**, then microtasks again. So sync runs first, then all Promise/`await` continuations, then a timer — which is why `Promise.then` beats `setTimeout(0)`.
+
+### 20s — “Who does the queueing?”
+
+> The **browser** queues timer/network/DOM callbacks. **Promises** queue microtasks. The **event loop** decides the order: sync → all microtasks → one task.
 
 ---
 
@@ -36,11 +50,92 @@ Interviewers use output questions to check whether you understand:
 
 ---
 
-## 2. The Mental Model (Memorize This)
+## 2. Who does the queueing? (Browser / host vs JS engine)
+
+This is the gap interviewers probe with: *“Where do these queues live? Who puts work there?”*
+
+### Short answer
+
+| Piece | Who owns it | Role |
+|---|---|---|
+| **Call stack** | JS engine (V8 in Chrome/Node, SpiderMonkey, JSCore…) | Runs your JS — one frame at a time |
+| **Heap** | JS engine | Objects / memory |
+| **Web APIs / Host APIs** | **Browser** (or Node C++ host) — **not** the JS engine alone | Timers, `fetch`, DOM events, `setTimeout` clocks |
+| **Task / macrotask queue** | **Host environment** (HTML event loop in browsers) | Callbacks ready to run as tasks |
+| **Microtask queue** | Coordinated by engine + host (Promises are in the JS engine; drained per HTML/event-loop rules) | `.then`, `queueMicrotask`, `await` continuations |
+| **Event loop** | **Host** (browser tab / Node) | Forever: “stack empty? drain microtasks; run next task…” |
+
+**One-liner:**
+
+> JavaScript doesn’t do I/O by itself. The **browser (host)** runs timers/network/DOM. When that work finishes, the host **enqueues a callback**. The **event loop** (also host) pulls from those queues and gives the callback to the **JS engine** to run on the call stack.
+
+### Where it happens (picture)
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  BROWSER TAB / NODE PROCESS  (host environment)             │
+│                                                             │
+│   Web APIs                          Event loop              │
+│   ┌─────────────┐                   (scheduler)             │
+│   │ setTimeout  │──when ready──► Task queue ──┐             │
+│   │ fetch/XHR   │──when ready──► Task queue   │             │
+│   │ click/DOM   │──when ready──► Task queue   │             │
+│   └─────────────┘                             │             │
+│                                               ▼             │
+│                                    ┌──────────────────┐     │
+│                                    │  JS ENGINE (V8)  │     │
+│                                    │  Call stack      │     │
+│                                    │  (+ Promise /    │     │
+│                                    │   microtask q)   │     │
+│                                    └──────────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Concrete walk: `setTimeout` vs `Promise`
+
+```js
+setTimeout(() => console.log('timeout'), 0);
+Promise.resolve().then(() => console.log('promise'));
+console.log('sync');
+```
+
+1. **JS engine** runs the script on the **call stack** (this whole script is itself one task).
+2. `setTimeout(...)` → engine calls into **browser timer Web API**. Browser starts a timer. **Nothing is on the JS queue yet.**
+3. `Promise.resolve().then(...)` → engine schedules a **microtask** (Promise job).
+4. `console.log('sync')` runs now → prints `sync`.
+5. Script/task finishes → stack empty.
+6. **Event loop** (browser): drain **microtasks** → prints `promise`.
+7. Timer already fired → browser had put the timeout callback on the **task queue**.
+8. Event loop takes **one task** → engine runs it → prints `timeout`.
+
+So:
+
+- **Queueing the timeout callback** = browser/host after the timer completes  
+- **Queueing the Promise `.then`** = JS Promise machinery (microtask)  
+- **Choosing what runs next** = event loop (host), following the rules below  
+
+### Browser vs Node
+
+| | Browser | Node |
+|---|---|---|
+| Host | HTML page / tab event loop | libuv + Node event loop phases |
+| Timer / I/O | Web APIs | libuv |
+| Microtasks | Promise + `queueMicrotask` | same + `process.nextTick` (even higher) |
+| Engine | V8 / JSCore / SpiderMonkey | V8 |
+
+Frontend interviews almost always mean the **browser** model.
+
+### What to say if they ask “Is the event loop part of JavaScript?”
+
+> The language spec defines Jobs/Promises; the **HTML spec** (browsers) and **Node** define the event loop that orchestrates tasks and rendering. In practice we say “JS event loop,” but the loop itself is provided by the **runtime host**, not by your `.js` file alone.
+
+---
+
+## 3. The Mental Model (Memorize This)
 
 ```text
 ┌──────────────────────────────┐
-│         Call Stack           │  ← currently running JS
+│         Call Stack           │  ← currently running JS  (engine)
 └──────────────▲───────────────┘
                │
                │ stack empty?
@@ -56,7 +151,7 @@ Interviewers use output questions to check whether you understand:
                │ microtask queue empty
                │
 ┌──────────────┴───────────────┐
-│       Macrotask Queue        │  ← run ONE
+│       Macrotask Queue        │  ← run ONE  (host task queue)
 │  setTimeout / setInterval
 │  setImmediate (Node)
 │  UI events, MessageChannel
@@ -82,7 +177,7 @@ sync → ALL microtasks → ONE macrotask → ALL microtasks → ONE macrotask �
 
 ---
 
-## 3. Preference / Priority Order
+## 4. Preference / Priority Order
 
 ### Browser (most frontend interviews)
 
@@ -134,7 +229,7 @@ For Angular/frontend roles, focus on the **browser model**. Mention Node only if
 
 ---
 
-## 4. Microtasks vs Macrotasks Cheat Sheet
+## 4b. Microtasks vs Macrotasks Cheat Sheet
 
 ### Microtasks
 
@@ -1795,9 +1890,19 @@ Reasoning style to say in interview:
 
 ---
 
-## 14. Perfect 60-Second Spoken Answer
+## 14. Perfect spoken answers
 
-> JavaScript has one call stack, so only one thing runs at a time. Async APIs schedule callbacks into queues. After synchronous code finishes, the event loop drains the entire microtask queue — Promise handlers, `queueMicrotask`, and `await` continuations. Then it may render, then it runs one macrotask like a timer or event callback, then drains microtasks again. That is why `Promise.then` runs before `setTimeout(fn, 0)`, and why a microtask created inside a timeout still runs before the next timeout.
+### 60–75s — full “explain the event loop” (use this)
+
+> JavaScript is single-threaded: the **engine** (like V8) has one **call stack**, so only one piece of JS runs at a time. Async work isn’t done by the engine alone — the **browser host** provides Web APIs for timers, network, and DOM. When you call `setTimeout` or `fetch`, the host does that work outside JS; when it finishes, it **queues a callback as a task**. Promises schedule **microtasks** closer to the engine. The **event loop** — also part of the host — keeps checking: when the stack is empty, drain **all microtasks**, maybe paint, then run **one macrotask**, then microtasks again. So sync runs first, then all Promise/`await` continuations, then a timer — which is why `Promise.then` beats `setTimeout(0)`.
+
+### 45s — shorter version
+
+> JS has one call stack. The browser runs timers and I/O and puts callbacks on task queues; Promises use the microtask queue. After sync code, the event loop drains every microtask, then one macrotask, and repeats. That’s why microtasks run before `setTimeout(fn, 0)`.
+
+### 20s — who queues what
+
+> The **browser** queues timer/network/DOM callbacks. **Promises** queue microtasks. The **event loop** decides the order: sync → all microtasks → one task.
 
 ---
 

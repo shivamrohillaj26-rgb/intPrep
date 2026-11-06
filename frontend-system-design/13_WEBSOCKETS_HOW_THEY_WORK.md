@@ -4,7 +4,9 @@ Full duplex, persistent connection between browser and server.
 This guide is the **how** (handshake, frames, lifecycle) plus frontend system design.
 
 Related: high-frequency UI freezes → [../scenario-based-questions/05_WEBSOCKET_HIGH_FREQUENCY_UPDATES.md](../scenario-based-questions/05_WEBSOCKET_HIGH_FREQUENCY_UPDATES.md)  
-SSE vs WS choice → [../scenario-based-questions/LICIOUS_MANAGERIAL_FRONTEND.md](../scenario-based-questions/LICIOUS_MANAGERIAL_FRONTEND.md) §1
+SSE vs WS choice → [../scenario-based-questions/LICIOUS_MANAGERIAL_FRONTEND.md](../scenario-based-questions/LICIOUS_MANAGERIAL_FRONTEND.md) §1  
+
+**NUX IDMS bell / push is not WebSockets** — it is **FCM + REST pull**. Details: [../onetrust/ONETRUST_NOTIFICATIONS_FCM.md](../onetrust/ONETRUST_NOTIFICATIONS_FCM.md).
 
 ---
 

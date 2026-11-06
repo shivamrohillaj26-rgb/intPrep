@@ -1,0 +1,59 @@
+<div class="page">
+  <a routerLink="/" class="back">← Home</a>
+  <h1>Q10 — Custom pipe & directive</h1>
+  <p class="hint">
+    Minimal interview practice: pipe with args + attribute directive with inputs.
+  </p>
+
+  <section class="card">
+    <h2>1. Pipe with arguments</h2>
+    <p class="code">&#123;&#123; sample | truncate:18:'…' &#125;&#125;</p>
+    <p>
+      <strong>Full:</strong> {{ sample }}
+    </p>
+    <p>
+      <strong>Truncated (18, …):</strong> {{ sample | truncate: 18 : '…' }}
+    </p>
+    <p>
+      <strong>Truncated (10, ---):</strong> {{ sample | truncate: 10 : '---' }}
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>2. Directive with arguments</h2>
+    <p class="code">
+      &lt;p [appHighlight]="bg" [textColor]="fg"&gt;…&lt;/p&gt;
+    </p>
+
+    <label>
+      Background
+      <input [ngModel]="bg()" (ngModelChange)="bg.set($event)" />
+    </label>
+    <label>
+      Text color
+      <input [ngModel]="fg()" (ngModelChange)="fg.set($event)" />
+    </label>
+
+    <p [appHighlight]="bg()" [textColor]="fg()">
+      Highlight me — directive applies styles via HostBinding + inputs.
+    </p>
+  </section>
+
+  <section class="card talk">
+    <h2>Say in interview</h2>
+    <ul>
+      <li>
+        <strong>Pipe</strong> — transforms display value in templates; pass args after
+        <code>:</code>; keep pure when possible.
+      </li>
+      <li>
+        <strong>Directive</strong> — adds behavior to a host element; configure with
+        <code>input()</code> / <code>@Input()</code>; style via <code>HostBinding</code>.
+      </li>
+      <li>
+        Pipe = data transform. Directive = DOM/behavior. Component = UI + logic with
+        template.
+      </li>
+    </ul>
+  </section>
+</div>

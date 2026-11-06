@@ -1,6 +1,27 @@
 # Event Bubbling, Capturing & Delegation — Interview Ready Guide
 
-Critical for frontend interviews (DOM + Angular/React mental models).
+Critical for frontend interviews (DOM + Angular/React mental models).  
+Same depth bar as [RXJS_INTERVIEW.md](./RXJS_INTERVIEW.md): phases → APIs → delegation → traps → Q bank.
+
+---
+
+## 0. One-minute mental model
+
+```text
+Click on <button> inside nested divs:
+
+  CAPTURE  window → document → … → parent → button
+  TARGET   button (listeners on the clicked node)
+  BUBBLE   button → parent → … → document → window
+```
+
+| Concept | One line |
+|---|---|
+| **Bubbling** | Event goes **up** after target (default for `addEventListener`) |
+| **Capturing** | Event goes **down** before target (`{ capture: true }`) |
+| **Delegation** | One parent listener + `target` / `closest` handles many children |
+| **`stopPropagation`** | Stop travel to other nodes |
+| **`preventDefault`** | Stop browser default action (not the same thing) |
 
 ---
 
@@ -300,24 +321,103 @@ Interview tip:
 element.addEventListener('click', handler, {
   capture: true,  // listen in capture phase
   once: true,     // auto-remove after one call
-  passive: true   // cannot preventDefault (better scroll perf)
+  passive: true,  // promise not to preventDefault (better scroll/touch)
+  signal: controller.signal, // AbortController removes listener
 });
+```
+
+| Option | Interview point |
+|---|---|
+| `capture` | Run on the way **down** |
+| `once` | Fire once then auto-remove |
+| `passive: true` | Browser can scroll without waiting; **`preventDefault` is ignored / warned** — use for `touchstart` / `wheel` / scroll |
+| `signal` | Modern cleanup without storing the handler fn |
+
+```js
+const ac = new AbortController();
+el.addEventListener('click', onClick, { signal: ac.signal });
+// later
+ac.abort(); // removes listener
 ```
 
 ---
 
-## 12. Angular Connection
+## 12. When capturing is actually useful
 
-Angular event bindings like `(click)="save()"` attach listeners for you.
+Most app code uses bubble. Capture shines when you need to run **before** the target:
 
-But concepts still matter:
+| Use case | Why capture |
+|---|---|
+| Outside-click / “click away to close” | See event on `document` early; decide if target is inside modal |
+| Analytics / logging all clicks | Run even if child later `stopPropagation`s (if you listen capture on ancestor **before** stop — note: stop in capture still blocks lower nodes) |
+| Intercept before child cancels | Parent capture runs before child bubble handler |
 
-- understanding click on child vs parent
-- `$event.stopPropagation()` in templates
-- delegation patterns in custom directives
-- performance with many DOM nodes
+```js
+// Simplified outside-click
+document.addEventListener('click', (e) => {
+  if (!modal.contains(e.target)) closeModal();
+}); // bubble on document is usually enough
 
-Example mental model:
+// Capture example: stop everything from reaching a subtree (rare / nuclear)
+window.addEventListener('click', (e) => e.stopPropagation(), true);
+```
+
+**Senior note:** Overusing `stopPropagation` breaks ancestor handlers (tooltips, analytics, React roots). Prefer checking `target` in the parent instead of stopping the world.
+
+---
+
+## 13. Target-phase nuance (tricky)
+
+On the **target element itself**, both capture-registered and bubble-registered listeners can run.
+
+Order on the same node: typically **capture listeners first, then bubble listeners** (registration order among same-phase listeners).
+
+```js
+el.addEventListener('click', () => console.log('bubble'), false);
+el.addEventListener('click', () => console.log('capture'), true);
+// Click el → often: capture, then bubble
+```
+
+`event.eventPhase`:
+
+| Value | Phase |
+|---|---|
+| `Event.CAPTURING_PHASE` (1) | Capturing |
+| `Event.AT_TARGET` (2) | At target |
+| `Event.BUBBLING_PHASE` (3) | Bubbling |
+
+---
+
+## 14. Icon-in-button gotcha (delegation bug)
+
+```html
+<button class="delete-btn">
+  <svg><!-- icon --></svg>
+  Delete
+</button>
+```
+
+```js
+// ❌ Often wrong — target may be <svg> or <path>, not <button>
+list.addEventListener('click', (e) => {
+  if (e.target.classList.contains('delete-btn')) { … }
+});
+
+// ✅ Walk up to the actionable element
+list.addEventListener('click', (e) => {
+  const btn = e.target.closest('.delete-btn');
+  if (!btn || !list.contains(btn)) return;
+  …
+});
+```
+
+Also guard with `currentTarget.contains(btn)` so a click that somehow matched outside doesn’t count.
+
+---
+
+## 15. Angular connection
+
+Angular `(click)="save()"` attaches listeners for you — phases still matter:
 
 ```html
 <div (click)="onParent()">
@@ -325,9 +425,34 @@ Example mental model:
 </div>
 ```
 
+| Pattern | Notes |
+|---|---|
+| `$event.stopPropagation()` | Same as native — parent won’t see bubble |
+| `$event.preventDefault()` | Forms / links |
+| `@HostListener('click', …)` | Component host listener |
+| `@HostListener('document:click')` | Outside-click patterns |
+| Huge `*ngFor` lists | Prefer one parent handler / delegation mindset over N bindings when perf matters |
+
+Practice app: q8 file explorer uses `stopPropagation` on add/delete so the row click doesn’t also toggle open.
+
 ---
 
-## 13. Interview Output Question
+## 16. React connection (often asked)
+
+React 17+ attaches listeners at the **root** (delegation under the hood).
+
+| API | Phase |
+|---|---|
+| `onClick` | Bubble (React’s synthetic system) |
+| `onClickCapture` | Capture |
+
+**Trap:** `e.stopPropagation()` on a **React** synthetic event stops other React handlers; **native** listeners outside may still run (and the reverse). Mixing native `addEventListener` + React on the same tree is a common footgun.
+
+---
+
+## 17. Output prediction drills
+
+### Drill A — mixed phases
 
 ```js
 parent.addEventListener('click', () => console.log('parent bubble'));
@@ -343,59 +468,163 @@ child
 parent bubble
 ```
 
+### Drill B — stop in capture
+
+```js
+parent.addEventListener('click', (e) => {
+  e.stopPropagation();
+  console.log('parent capture stop');
+}, true);
+child.addEventListener('click', () => console.log('child'));
+```
+
+Click child → only `parent capture stop` (never reaches child).
+
+### Drill C — stopImmediate vs stop
+
+```js
+child.addEventListener('click', (e) => {
+  e.stopImmediatePropagation();
+  console.log('1');
+});
+child.addEventListener('click', () => console.log('2'));
+parent.addEventListener('click', () => console.log('parent'));
+```
+
+→ only `1` (no `2`, no `parent`).
+
+### Drill D — preventDefault alone
+
+```js
+child.addEventListener('click', (e) => {
+  e.preventDefault();
+  console.log('child');
+});
+parent.addEventListener('click', () => console.log('parent'));
+```
+
+→ `child` then `parent` (propagation still happens).
+
 ---
 
-## 14. Common Interview Questions
+## 18. Mini implementation challenges
 
-**Q: What is event bubbling?**  
-A: Event moves from target element up through ancestors after target phase.
-
-**Q: What is capturing?**  
-A: Event moves from outer ancestors down to the target before bubbling.
-
-**Q: What is event delegation?**  
-A: Handling child events on a parent using bubbling and `event.target`.
-
-**Q: target vs currentTarget?**  
-A: target = origin element; currentTarget = element with active listener.
-
-**Q: stopPropagation vs preventDefault?**  
-A: stopPropagation stops travel through DOM; preventDefault stops browser default action.
-
-**Q: Why use delegation?**  
-A: Fewer listeners, works with dynamic elements, better performance.
-
----
-
-## 15. Mini Implementation Challenge
-
-“Handle clicks on all delete buttons inside a table with one listener.”
+### Challenge 1 — table delete (delegation)
 
 ```js
 table.addEventListener('click', (e) => {
   const btn = e.target.closest('.delete-btn');
-  if (!btn) return;
-
-  const row = btn.closest('tr');
-  row?.remove();
+  if (!btn || !table.contains(btn)) return;
+  btn.closest('tr')?.remove();
 });
 ```
 
-Explain:
+### Challenge 2 — toolbar actions with `data-*`
 
-- listener on table
-- click bubbles from button
-- `closest` finds button/row even if icon inside button was clicked
+```js
+toolbar.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const { action } = btn.dataset;
+  actions[action]?.();
+});
+```
+
+### Challenge 3 — once + AbortController cleanup
+
+```js
+function onFirstClick(el, fn) {
+  const ac = new AbortController();
+  el.addEventListener('click', (e) => {
+    fn(e);
+    ac.abort();
+  }, { signal: ac.signal });
+}
+```
 
 ---
 
-## 16. Spoken Answer (60 sec)
+## 19. Tricky interview Q bank
+
+**Q1. What are the three event phases?**  
+> Capture (down), target, bubble (up).
+
+**Q2. Default phase for `addEventListener`?**  
+> Bubbling (`capture: false`).
+
+**Q3. Bubbling vs capturing?**  
+> Bubble = target → root. Capture = root → target. Same path, opposite direction.
+
+**Q4. What is event delegation?**  
+> One listener on a common ancestor; use bubbling + `target`/`closest` to handle many children — works for dynamic nodes, fewer listeners.
+
+**Q5. `target` vs `currentTarget`?**  
+> `target` = origin node. `currentTarget` = node whose listener is running (the delegated parent).
+
+**Q6. `stopPropagation` vs `preventDefault`?**  
+> Propagation = DOM travel. Default = browser action (navigate, submit). Independent.
+
+**Q7. `stopImmediatePropagation`?**  
+> Also blocks **other listeners on the same element**.
+
+**Q8. Why doesn’t `focus` delegation work with bubble?**  
+> `focus`/`blur` don’t bubble. Use `focusin`/`focusout` or capture.
+
+**Q9. `mouseenter` vs `mouseover`?**  
+> `mouseenter`/`mouseleave` don’t bubble; `mouseover`/`mouseout` do (and fire often on children).
+
+**Q10. What is `{ passive: true }`?**  
+> Tells the browser you won’t `preventDefault` — smoother scroll/touch. Calling `preventDefault` in a passive listener doesn’t work as expected.
+
+**Q11. Why use `closest` in delegation?**  
+> Click may hit a nested icon/text node; `closest` finds the actionable ancestor.
+
+**Q12. Does `stopPropagation` in bubble stop capture listeners?**  
+> Capture already ran on the way down. Stop in bubble only blocks further bubbling (and remaining path).
+
+**Q13. Can you listen in both phases on one element?**  
+> Yes — two `addEventListener` calls, one with `capture: true`.
+
+**Q14. React `onClick` vs `onClickCapture`?**  
+> Bubble vs capture in React’s system; React roots use delegation internally.
+
+**Q15. When is capture preferred over bubble?**  
+> Need to run before children (intercept), or some non-bubbling cases via capture.
+
+**Q16. Memory win of delegation?**  
+> O(1) listeners on parent vs O(n) on each row; critical for big lists / infinite scroll cells.
+
+**Q17. `event.bubbles` / `cancelable`?**  
+> Flags whether the event type bubbles and whether `preventDefault` can work.
+
+**Q18. How do you remove a listener cleanly today?**  
+> Same function reference + `removeEventListener`, or `{ signal: AbortSignal }`, or `{ once: true }`.
+
+**Q19. Child calls `stopPropagation` — does parent capture still run?**  
+> Parent **capture** already ran before the child. Parent **bubble** will not run.
+
+**Q20. Difference between delegation and just putting handlers on each child?**  
+> Delegation scales, survives DOM add/remove, centralizes logic; per-child needs rebinding and more memory.
+
+---
+
+## 20. Spoken answers
+
+### 60s — full topic
 
 > When an event occurs, it goes through capturing from the outside in, reaches the target, then bubbles back out. By default listeners run in the bubbling phase. Event delegation uses that bubbling behavior by placing one listener on a parent and checking `event.target` or `closest` to decide which child was interacted with. This is efficient and works well for dynamic lists. `stopPropagation` stops the event from traveling further, while `preventDefault` blocks the browser’s default action.
 
+### 30s — delegation only
+
+> I’d attach one listener on a common parent, let clicks bubble, then use `closest` to find the row or button. That way new items work without rebinding, and I avoid hundreds of listeners.
+
+### 20s — stopPropagation vs preventDefault
+
+> stopPropagation stops DOM propagation. preventDefault stops the browser default. They solve different problems and are often confused.
+
 ---
 
-## 17. Cheat Sheet
+## 21. Cheat sheet
 
 ```text
 capture: window -> target
@@ -403,22 +632,44 @@ target:  clicked element
 bubble:  target -> window
 
 default listeners = bubble phase
-capture listeners = addEventListener(..., true)
+capture listeners = addEventListener(..., true) or { capture: true }
 
-target = who clicked
-currentTarget = who listens
+target        = who originated
+currentTarget = who listens (delegation parent)
+closest()     = find actionable ancestor (icon-in-button)
 
 delegation = parent listener + target/closest
-stopPropagation = stop travel
-preventDefault = stop browser default
+stopPropagation          = stop travel to other nodes
+stopImmediatePropagation = + block same-element listeners
+preventDefault           = stop browser default
+
+passive: true  → scroll/touch perf (no preventDefault)
+focus/blur     → don’t bubble → use focusin/focusout
+mouseenter     → don’t bubble → mouseover does
+
+Angular: (click) + $event.stopPropagation()
+React:   onClick / onClickCapture (root delegation)
 ```
 
 ---
 
-## 18. Practice Checklist
+## 22. Practice checklist
 
-- [ ] Draw capture/target/bubble path
-- [ ] Predict mixed capture/bubble output
-- [ ] Explain target vs currentTarget
-- [ ] Write one delegation example from memory
-- [ ] Explain stopPropagation vs preventDefault
+- [ ] Draw capture/target/bubble path  
+- [ ] Predict mixed capture/bubble output (Drill A–D)  
+- [ ] Explain target vs currentTarget  
+- [ ] Write delegation with `closest` from memory  
+- [ ] Explain stopPropagation vs preventDefault vs stopImmediate  
+- [ ] Name 2 non-bubbling events + fixes  
+- [ ] Explain `{ passive: true }`  
+- [ ] One Angular + one React sentence  
+
+---
+
+## Related
+
+| Topic | File |
+|---|---|
+| Custom EventEmitter (JS) | [EVENT_EMITTER.md](./EVENT_EMITTER.md) |
+| Event loop (async timing ≠ DOM phases) | [EVENT_LOOP.md](./EVENT_LOOP.md) |
+| File explorer `stopPropagation` practice | `prevonir-interview-practice` `/q8` |

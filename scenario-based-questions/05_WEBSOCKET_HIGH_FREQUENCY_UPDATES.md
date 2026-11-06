@@ -1,152 +1,111 @@
-# Scenario 5 — Stock Prices via WebSocket Freeze the UI
+# Scenario 5 — WebSocket Ticks Freeze the Angular UI
 
-**Prompt:** Stock prices update every second via WebSocket. During market hours, the UI freezes. How would you optimize rendering and state updates?
+**Prompt:** Stock prices update every second via WebSocket. During market hours the Angular UI freezes. How would you optimize rendering and state updates?
 
 ---
 
 ## 1. Clarify
 
-- How many symbols on screen? (10 vs 5,000)  
-- Full snapshot every second or deltas?  
-- Charts + table + watchlist all live?  
-- Main-thread work: JSON parse? sorting? formatting?  
-- Do inactive tabs still process ticks?
+- How many symbols on screen?  
+- Snapshot vs deltas?  
+- Charts + table?  
+- Parse cost vs CD vs DOM?  
+- Hidden tab still applying ticks?
 
-**“Every second” for *one* price is fine. Freezes mean you’re doing too much *per tick* on the main thread.**
-
----
-
-## 2. Diagnose — freeze anatomy
-
-```
-WS message → JSON.parse → update store → React render → DOM/layout → paint
-         ↑ often 100s–1000s of symbols per second in bursts
-```
-
-Typical killers:
-
-1. **SetState/Redux on every tick for entire book** → full tree render  
-2. **New object identity every time** → memo useless  
-3. **Rendering off-screen rows** (no virtualization)  
-4. **Heavy chart redraw** every second  
-5. **JSON.parse of huge payloads** on main thread  
-6. **No batching / coalescing** — 50 messages in one event-loop turn × expensive work  
-7. **Zone/CD thrash** (Angular) or Context at root (React)
+**“Every second” for one price is fine. Freeze = too much work per tick on the main thread — often Zone + Default CD.**
 
 ---
 
-## 3. Optimization strategy (layered)
+## 2. Diagnose
 
-### Layer A — Network & payload shape
-
-- Prefer **deltas** (`{ sym, price, ts }`) over full market snapshots  
-- Binary protocols (MessagePack/Protobuf) if JSON parse dominates  
-- Subscribe only to **visible / watched** symbols (server-side filter)  
-- Pause WS processing when `document.hidden`  
-
-**Why subscribe-to-viewport over “client filters 5k ticks”:**  
-Cheapest work is work never sent.
-
-### Layer B — Coalesce updates (do not render at tick rate blindly)
-
-Stock UIs rarely need *every* intermediate tick painted.
-
-```ts
-// rAF batching sketch
-let pending = new Map<string, Quote>();
-
-socket.onmessage = (evt) => {
-  const tick = parse(evt.data);
-  pending.set(tick.sym, tick); // last write wins per symbol
-};
-
-function flush() {
-  if (pending.size) {
-    applyTicks(pending); // one store update
-    pending = new Map();
-  }
-  requestAnimationFrame(flush);
-}
-requestAnimationFrame(flush);
+```
+WS message → JSON.parse → this.quotes = ... → Zone → CD whole tree → DOM
 ```
 
-Or throttle to **4–10 Hz** for UI while keeping a non-UI buffer for calculations.
+Killers:
 
-**Why rAF coalescing over setState per message:**  
-Aligns with display refresh; collapses bursts into one React commit.
+1. Putting **every tick** through Angular Zone (`new WebSocket` inside NgZone)  
+2. One array `quotes = [...]` new reference → `@for` rebuilds / OnPush sees new input  
+3. No `track` / no virtual scroll — thousands of components  
+4. Chart as Angular bindings every tick  
+5. `JSON.parse` huge frames on main thread  
+6. No coalesce — 50 messages / turn  
 
-**Why not “update Redux 1000 times/sec with middleware batch”:**  
-Still too much reducer + selector work if every row subscribed. Coalesce *and* narrow subscriptions.
+---
 
-### Layer C — State structure
+## 3. Layered Angular strategy
+
+### A — Payload
+
+Deltas, subscribe **visible symbols only**, pause when `document.hidden`.
+
+### B — Run the socket **outside** Zone, flush once per frame
 
 ```ts
-// normalized, mutable store with useSyncExternalStore OR
-quotesById: Record<string, Quote>
-
-// components subscribe to ONE symbol
-function useQuote(sym: string) {
-  return useSyncExternalStore(subscribeSymbol(sym), () => getQuote(sym));
+constructor() {
+  this.zone.runOutsideAngular(() => {
+    this.ws = new WebSocket(url);
+    this.ws.onmessage = (evt) => {
+      const tick = JSON.parse(evt.data) as Quote;
+      this.pending.set(tick.sym, tick);
+    };
+    const loop = () => {
+      if (this.pending.size) {
+        const batch = this.pending;
+        this.pending = new Map();
+        this.zone.run(() => this.applyBatch(batch)); // one CD
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
 }
 ```
 
-Avoid:
+**Why `runOutsideAngular`:** Each WS message would otherwise schedule CD. Pump outside Zone; **one** `zone.run` / signal update per rAF.
+
+### C — Per-symbol signals, not one giant list
 
 ```ts
-// ❌ one giant quotes array in React state → all rows re-render
-setQuotes(nextArray);
+private readonly byId = new Map<string, WritableSignal<Quote>>();
+
+quote(sym: string) {
+  if (!this.byId.has(sym)) this.byId.set(sym, signal(emptyQuote(sym)));
+  return this.byId.get(sym)!;
+}
+
+applyBatch(batch: Map<string, Quote>) {
+  batch.forEach((q, id) => this.quote(id).set(q));
+}
 ```
 
-**Why `useSyncExternalStore` / external store over React Context for ticks:**  
-Context notifies all consumers. External store can notify **per symbol**.
+Row template: `quote(row.sym)()` — **only that row** dirties. Not `quotes.set([...all])`.
 
-**Why not Redux for the hot path:**  
-Possible with extreme care (entity adapter + per-symbol selectors), but a dedicated quote store is simpler and faster to reason about. Redux can hold **portfolio metadata**; quotes stay in a tick store.
+NgRx for **portfolio metadata**; hot ticks stay in this store.
 
-### Layer D — Rendering
+### D — Rendering
 
-1. **Virtualize** lists/grids (`react-window` / TanStack Virtual) — only ~30 DOM rows  
-2. **`React.memo` row** + primitive props (`price`, `change`)  
-3. **Don’t recreate row callbacks/styles** each parent render  
-4. **Split cool vs hot UI:**  
-   - Hot: price cell (updates often)  
-   - Cool: company name, sector (static)  
-5. **Charts:** update series via chart API (Canvas/WebGL) — **not** full React re-mount; downsample points  
-6. **CSS content-visibility / contain** for large cells where applicable  
+- **CDK virtual scroll** — ~30 DOM rows ([NUX virtual scroll](../onetrust/ONETRUST_INFINITE_VIRTUAL_SCROLL.md))  
+- **OnPush** rows + `@for (row of rows; track row.sym)`  
+- Split **hot** price cell vs **cool** name  
+- Charts: Canvas/WebGL API, not `{{ point }}` on 5k SVG nodes  
+- `takeUntilDestroyed` — close WS on leave  
 
-### Layer E — Offload main thread
+### E — Worker
 
-| Work | Where |
-|---|---|
-| Parse large binary frames | Worker  
-| Aggregate candles / indicators | Worker  
-| UI apply | Main thread, batched |
-
-```ts
-worker.postMessage(rawBuffer);
-worker.onmessage = (e) => applyDeltaBatch(e.data);
-```
-
-**Why workers over micro-optimizing JSON.parse loops first:**  
-If profiling shows parse/aggregate > frame budget, workers are the right tool. If render is the issue, fix virtualization first. **Profile before prescribing.**
-
-### Layer F — Visual tricks that preserve UX
-
-- Flash cell color via CSS class toggled on row store, not whole table re-layout  
-- Show “market closed” static mode after hours  
-- Reduce precision formatting work (preformat in worker)
+Parse/aggregate in a **Web Worker**; main thread only applies a small batch. Profile first (Performance panel).
 
 ---
 
-## 4. Target architecture
+## 4. Picture
 
 ```
-WebSocket
-  → Worker (parse + normalize deltas)
-  → Pending Map (coalesce per symbol)
-  → rAF flush → QuoteStore (per-symbol notify)
-  → Virtualized table rows subscribe to own symbol
-  → Chart engine gets downsampled series (not React state every tick)
+WebSocket (outside NgZone)
+  → Worker parse (optional)
+  → Map coalesce per symbol
+  → rAF → zone.run / signal.set per changed id
+  → CDK virtualized OnPush rows
+  → Chart imperative downsample
 ```
 
 ---
@@ -155,34 +114,22 @@ WebSocket
 
 | Approach | When |
 |---|---|
-| Virtualization only | Essential if many rows; alone won’t fix 1-row chart freezes |
-| React.memo only | Insufficient if parent passes new data refs globally |
-| Redux + Reselect | OK at moderate scale; hot path often better external |
-| Update DOM directly via refs | Escape hatch for single cells; avoid reinventing React |
-| Canvas table | Extreme scale (thousands visible); higher complexity |
-| Pause when hidden | Always — free win |
-
-**Chosen stack for interview:**  
-> Server-side symbol subscription → worker parse → coalesce on rAF → per-symbol store → virtualized memoized rows → chart imperatively updated. Profile to confirm bottlenecks.
+| OnPush only | Not if parent passes a new `quotes[]` every tick |
+| Virtual scroll only | Need it for many rows; won’t fix Zone-per-message |
+| NgRx action per tick | Usually too heavy |
+| Direct DOM / `ElementRef` | Escape hatch for one cell; don’t reinvent CDK |
+| Pause when hidden | Always |
 
 ---
 
-## 6. Angular note (if asked)
+## 6. 60-second spoken answer
 
-Same ideas: signals/store per symbol, `@defer` / virtual scroll CDK, avoid pushing every tick through a giant `*ngFor` without `trackBy`, run outside Angular zone for WS pump then batch `markForCheck` / signal updates once per frame.
-
----
-
-## 7. 60-second spoken answer
-
-> Freezes mean the main thread is doing too much per tick—usually parse + global state update + rendering thousands of cells. I’d **subscribe only to needed symbols**, **parse/aggregate in a worker**, **coalesce updates on `requestAnimationFrame`**, hold quotes in a **per-symbol store**, and render a **virtualized, memoized** grid so only visible hot cells update. Charts should update imperatively with downsampled data, not full React re-renders every second. I’d pause when the tab is hidden and prove wins with the Performance panel.
+> Freezes are main-thread: parse, **Zone change detection**, and too many DOM rows. I’d **subscribe only to visible symbols**, parse off-thread if needed, run the **WebSocket outside NgZone**, **coalesce on rAF**, and store **per-symbol signals** so one tick doesn’t dirty the table. Rows are **OnPush + CDK virtual scroll + `track`**. Charts update **imperatively**. Pause when the tab is hidden and prove it in the Performance panel.
 
 ---
 
 ## Related
 
-- How WebSockets work (handshake, frames, reconnect): `../frontend-system-design/13_WEBSOCKETS_HOW_THEY_WORK.md`  
-- Scenario 1 — dashboard polling (visibility + batching cousins)  
-- Scenario 8 — 100k rows (virtualization deep dive)  
-- `../frontend-system-design/05_WEB_WORKERS.md`  
-- `../frontend-system-design/03_REFLOW_REPAINT_RENDERING_PERFORMANCE.md`
+- [13_WEBSOCKETS…](../frontend-system-design/13_WEBSOCKETS_HOW_THEY_WORK.md)  
+- [ANGULAR_CHANGE_DETECTION…](../angular-interview-prep/ANGULAR_CHANGE_DETECTION_ONPUSH_ZONELESS.md)  
+- Scenario 8 — 100k rows

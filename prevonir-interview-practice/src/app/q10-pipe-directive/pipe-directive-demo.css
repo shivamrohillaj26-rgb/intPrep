@@ -1,0 +1,76 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: system-ui, sans-serif;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.hint {
+  color: #64748b;
+  margin-bottom: 1.25rem;
+}
+
+.card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  background: #f1f5f9;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+.demo {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.talk ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.talk li {
+  margin-bottom: 0.5rem;
+}
+
+.talk code {
+  font-size: 0.85em;
+  background: #f1f5f9;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}

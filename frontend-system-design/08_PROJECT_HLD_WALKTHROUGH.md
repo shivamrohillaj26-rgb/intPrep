@@ -158,3 +158,5 @@ Always give one tradeoff:
 7. Tradeoff + next improvement  
 
 Practice out loud once with your real project before the interview.
+
+**Filled for Netradyne IDMS (from `Desktop/Ternary`):** [16_NETRADYNE_IDMS_PROJECT_HLD.md](./16_NETRADYNE_IDMS_PROJECT_HLD.md)

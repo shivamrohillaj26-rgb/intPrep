@@ -316,3 +316,9 @@ Observable next/error/complete
 Angular: prefer Observables + async pipe / takeUntil
 Search box: debounceTime + switchMap
 ```
+
+---
+
+## Related
+
+**Full RxJS operators + tricky interview Q bank:** [RXJS_INTERVIEW.md](./RXJS_INTERVIEW.md)

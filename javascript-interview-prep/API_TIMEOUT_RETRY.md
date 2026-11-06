@@ -3,7 +3,8 @@
 > Wrap an unstable API so it **never blocks the app longer than N ms**.  
 > If it doesn’t respond in time: **throw a timeout error**, or **retry once** then give up.
 
-Tests: Promises, `async/await`, `Promise.race`, and resilience thinking.
+Tests: Promises, `async/await`, `Promise.race`, and resilience thinking.  
+**Angular / RxJS twin:** §13 — `timeout` + `retry` on `HttpClient`.
 
 ---
 
@@ -381,15 +382,332 @@ function mockApi(ms, value = 'ok') {
 **Q: `Promise.race` vs `Promise.any`?**  
 > `race` = first settle (including reject). `any` = first fulfill (ignores rejects until all fail). Timeout needs `race`.
 
+**Q: How do you do this in Angular / RxJS?**  
+> `http.get(…).pipe(timeout(300), retry({ count: 1 }), catchError(…))`. Timeout bounds each attempt; retry re-subscribes and starts a new request.
+
+**Q: Why timeout before retry?**  
+> So every attempt is capped. Retry-first can leave a slow call hanging without a per-attempt deadline.
+
+**Q: Does RxJS timeout cancel HTTP?**  
+> Timing out errors the stream and unsubscribes upstream — with `HttpClient` that typically aborts the in-flight request. Bare `Promise.race` does not abort unless you use `AbortController`.
+
 ---
 
-## 13. 30-second spoken answer
+## 13. Angular + RxJS — same problem, Observable operators
+
+In Angular interviews they often rephrase this as:
+
+> “How would you add a **timeout** and **retry** on an `HttpClient` call?”
+
+Same product goal. Different tools:
+
+| Promise / vanilla JS | RxJS / Angular |
+|---|---|
+| `Promise.race([api(), timer])` | `pipe(timeout(300))` |
+| Manual `for` + factory `() => api()` | `retry(1)` / `retry({ count: 1 })` |
+| `AbortController` | Unsubscribe / `takeUntilDestroyed` — **HttpClient cancels** the XHR/fetch |
+| `async/await` + try/catch | `subscribe` / `async` pipe / `firstValueFrom` + `catchError` |
+
+**Mapping one-liner:**
+
+> `timeout` = race against a timer. `retry` = re-subscribe (new HTTP call). That’s the Observable version of factory + `Promise.race`.
+
+---
+
+### 13.1 Timeout only (RxJS)
+
+```ts
+import { timeout, TimeoutError } from 'rxjs';
+import { catchError } from 'rxjs/operators'; // or from 'rxjs' in modern imports
+
+this.http.get<Product[]>('/api/products').pipe(
+  timeout(300), // throws TimeoutError if no emit within 300ms
+  catchError((err) => {
+    if (err instanceof TimeoutError) {
+      // show fallback / toast
+    }
+    throw err; // or return of([]) soft fallback
+  }),
+);
+```
+
+**Modern RxJS (7+)** — prefer object form / named imports from `'rxjs'`:
+
+```ts
+import { timeout, catchError, of, TimeoutError } from 'rxjs';
+
+this.http.get<Product[]>('/api/products').pipe(
+  timeout({ each: 300 }), // or timeout(300)
+  catchError((err) => {
+    if (err.name === 'TimeoutError' || err instanceof TimeoutError) {
+      return of([] as Product[]); // soft timeout → empty list
+    }
+    throw err;
+  }),
+);
+```
+
+| Concept | Behavior |
+|---|---|
+| `timeout(300)` | If source doesn’t emit/complete in time → error |
+| Vs `Promise.race` | Same idea; operator handles the timer for you |
+| Soft timeout | `catchError` → `of(fallback)` instead of rethrow |
+
+---
+
+### 13.2 Timeout + retry once (interview MVP — Angular)
+
+```ts
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { timeout, retry, catchError, throwError, TimeoutError } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class ProductApi {
+  private http = inject(HttpClient);
+
+  getProducts() {
+    return this.http.get<Product[]>('/api/products').pipe(
+      timeout(300),
+      // On error (including TimeoutError), re-subscribe → NEW HTTP request
+      retry({ count: 1, delay: 0 }), // one retry = 2 total attempts
+      catchError((err) => {
+        const msg =
+          err instanceof TimeoutError || err.name === 'TimeoutError'
+            ? 'Timeout'
+            : err.message ?? 'Request failed';
+        return throwError(() => new Error(msg));
+      }),
+    );
+  }
+}
+```
+
+**Operator order matters:**
+
+```text
+http.get
+  → timeout(300)     // each attempt is bounded
+  → retry(1)         // on error, re-subscribe the WHOLE upstream pipe
+  → catchError       // final failure for the UI
+```
+
+If you put `retry` *before* `timeout`, a slow request might hang without timing out per attempt — wrong for this challenge.
+
+**Why retry = factory pattern:**
+
+```text
+Promise:  withTimeoutRetry(() => api())  // new call each loop
+RxJS:     retry() re-subscribes source   // HttpClient starts a NEW request
+```
+
+You do **not** manually wrap a factory — cold Observables from `HttpClient` already start work on subscribe.
+
+---
+
+### 13.3 Retry only on timeout / 5xx (selective)
+
+```ts
+import { timeout, retry, timer, throwError } from 'rxjs';
+
+this.http.get('/api/products').pipe(
+  timeout(300),
+  retry({
+    count: 1,
+    delay: (error, retryCount) => {
+      // retry only Timeout or 5xx
+      const status = error?.status;
+      const isTimeout = error.name === 'TimeoutError';
+      const isServer = status >= 500;
+      if (!isTimeout && !isServer) {
+        return throwError(() => error); // stop retrying
+      }
+      return timer(0); // or timer(200 * retryCount) backoff
+    },
+  }),
+);
+```
+
+Older style still seen in interviews:
+
+```ts
+import { retryWhen, delay, take, timeout } from 'rxjs/operators';
+// or pipeable from 'rxjs' depending on version
+
+this.http.get('/api/x').pipe(
+  timeout(300),
+  retry({ count: 1 }), // prefer this over retryWhen in modern RxJS
+);
+```
+
+---
+
+### 13.4 Component usage (signals / subscribe / async pipe)
+
+**Option A — `async` pipe (auto-unsubscribe):**
+
+```ts
+@Component({
+  template: `
+    @if (products$ | async; as products) {
+      <li *ngFor="let p of products">{{ p.name }}</li>
+    } @else {
+      <p>Loading…</p>
+    }
+  `,
+})
+export class ProductList {
+  private api = inject(ProductApi);
+  products$ = this.api.getProducts(); // already has timeout + retry
+}
+```
+
+**Option B — signals + `toSignal` / subscribe once:**
+
+```ts
+import { catchError, of } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+
+products = toSignal(
+  this.api.getProducts().pipe(catchError(() => of([]))),
+  { initialValue: [] as Product[] },
+);
+```
+
+**Option C — imperative (machine-coding style):**
+
+```ts
+loading = signal(true);
+error = signal<string | null>(null);
+products = signal<Product[]>([]);
+
+ngOnInit() {
+  this.api.getProducts().subscribe({
+    next: (data) => {
+      this.products.set(data);
+      this.loading.set(false);
+    },
+    error: (e) => {
+      this.error.set(e.message);
+      this.loading.set(false);
+    },
+  });
+}
+```
+
+Prefer `takeUntilDestroyed()` if you subscribe manually:
+
+```ts
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+this.api.getProducts()
+  .pipe(takeUntilDestroyed())
+  .subscribe({ next: (d) => this.products.set(d) });
+```
+
+---
+
+### 13.5 Cancellation — RxJS advantage over bare `Promise.race`
+
+| | Promise `race` | Angular `HttpClient` + unsubscribe |
+|---|---|---|
+| Stops waiting | Yes | Yes |
+| Cancels in-flight HTTP | **No** (need AbortController) | **Yes** — unsubscribing aborts the request |
+| Leave page mid-flight | Late `.then` can still run | Unsubscribe → no next/error (if torn down correctly) |
+
+```ts
+// Navigate away / destroy component → subscription ends → request aborted
+this.http.get('/api/slow').pipe(timeout(300), takeUntilDestroyed()).subscribe(…);
+```
+
+**Spoken senior line:**
+
+> With Promises, timeout doesn’t cancel work — I need AbortController. With HttpClient, unsubscribing cancels the XHR/fetch, so timeout + destroy both stop waiting *and* can stop the network call.
+
+---
+
+### 13.6 Promise helpers inside Angular (when they ask both)
+
+You can still use the JS solution with `firstValueFrom` / `lastValueFrom`:
+
+```ts
+import { firstValueFrom, timeout } from 'rxjs';
+
+async load() {
+  try {
+    const data = await firstValueFrom(
+      this.http.get<Product[]>('/api/products').pipe(
+        timeout(300),
+        retry({ count: 1 }),
+      ),
+    );
+    this.products.set(data);
+  } catch {
+    this.error.set('Timeout or failed');
+  }
+}
+```
+
+Or wrap a Promise API the JS way, then `from(promise)` if you must mix.
+
+---
+
+### 13.7 Side-by-side cheat sheet
+
+```text
+JS interview                    Angular / RxJS interview
+─────────────────────────       ────────────────────────────────
+Promise.race([api, timer])  →   pipe(timeout(300))
+for-loop + () => api()      →   retry({ count: 1 })
+clearTimeout in finally     →   (operator cleans up; unsub cancels HTTP)
+AbortController             →   unsubscribe / takeUntilDestroyed
+try/catch                   →   catchError / subscribe error
+show fallback               →   catchError(() => of(cache))
+```
+
+**Interview-simple Angular snippet to memorize:**
+
+```ts
+this.http.get(url).pipe(
+  timeout(300),
+  retry({ count: 1 }),
+  catchError((e) => throwError(() => e)),
+);
+```
+
+---
+
+### 13.8 Angular-specific gotchas
+
+| Mistake | Fix |
+|---|---|
+| `retry` before `timeout` | Put **`timeout` then `retry`** so each attempt is capped |
+| Hot Observable / shared replay | Retry re-subscribes; for HTTP stay on **cold** `http.get` |
+| Retry on 404 | Use selective `delay` predicate — don’t retry client errors |
+| Forget unsubscribe on manual subscribe | `async` pipe or `takeUntilDestroyed` |
+| `toPromise()` | Deprecated — use `firstValueFrom` |
+| Interceptor vs per-call | Global timeout in interceptor is possible; usually per-API is clearer for interviews |
+
+**HTTP interceptor sketch (optional follow-up):**
+
+```ts
+export const timeoutInterceptor: HttpInterceptorFn = (req, next) =>
+  next(req).pipe(timeout(10_000)); // global ceiling; still can retry per service
+```
+
+---
+
+## 14. 30-second spoken answer (vanilla JS)
 
 > I’d wrap the API with `Promise.race` against a 300ms rejecting timer so the UI never waits longer than that. For resilience I’d accept a function that starts the request, and on timeout or failure retry once with the same timeout budget. I’d clear the timer when the API wins, and mention that true cancellation needs `AbortController` because race doesn’t abort the slow request. In the UI I’d show cached/fallback data on timeout instead of blocking.
 
+### 30-second spoken answer (Angular / RxJS)
+
+> In Angular I’d use `HttpClient` with `timeout(300)` then `retry({ count: 1 })` so each attempt is bounded and a failure re-subscribes — which starts a new HTTP call, same idea as a factory in the Promise version. I’d handle the final error with `catchError` and show fallback UI. Unsubscribe or `takeUntilDestroyed` cancels in-flight requests, which is nicer than bare `Promise.race`. Operator order is timeout first, then retry.
+
 ---
 
-## 14. Practice checklist
+## 15. Practice checklist
 
 - [ ] Write `withTimeout` from blank in &lt; 3 minutes  
 - [ ] Add one retry with factory `() => api()`  
@@ -397,6 +715,9 @@ function mockApi(ms, value = 'ok') {
 - [ ] Name AbortController as cancel follow-up  
 - [ ] Wire a loading/error/fallback UI story  
 - [ ] Know `race` vs `all` vs `any`  
+- [ ] Write Angular: `http.get.pipe(timeout(300), retry({ count: 1 }))`  
+- [ ] Explain why **timeout before retry**  
+- [ ] Say HttpClient unsub ≈ cancel (vs Promise race)  
 
 ---
 
@@ -406,5 +727,7 @@ function mockApi(ms, value = 'ok') {
 |---|---|
 | `Promise.race` basics | [PROMISES.md](./PROMISES.md) |
 | async/await control flow | [ASYNC_AWAIT.md](./ASYNC_AWAIT.md) |
+| Promises vs Observables | [PROMISES_VS_OBSERVABLES.md](./PROMISES_VS_OBSERVABLES.md) |
 | Event loop + timers | [EVENT_LOOP.md](./EVENT_LOOP.md) |
 | Debounce (don’t spam retries) | [DEBOUNCE_THROTTLE.md](./DEBOUNCE_THROTTLE.md) |
+| Angular signals / `toSignal` | [../angular-interview-prep/ANGULAR_SIGNALS.md](../angular-interview-prep/ANGULAR_SIGNALS.md) |

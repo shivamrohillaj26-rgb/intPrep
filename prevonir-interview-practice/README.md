@@ -25,6 +25,11 @@ Open http://localhost:4200
 | `/q7` | Virtualized big list |
 | `/q8` | File explorer / VS Code sidebar |
 | `/q9` | JWT auth + RBAC + route guards + interceptor |
+| `/q10` | Custom pipe (args) + attribute directive (inputs) |
+| `/q11` | Reactive forms (FormBuilder + validators + FormArray) |
+| `/q12` | Basic calculator (digits, 4 ops, =, C — no eval) |
+| `/q13` | Custom structural directive (`*appFor` ≈ ngFor) |
+| `/q14` | DI scopes — five steps (root / component / route / appConfig / missing) |
 
 ## Demo credentials (Q2)
 
@@ -51,6 +56,10 @@ src/app/
   q7-virtual-list/        ← windowing / virtualization
   q8-file-explorer/       ← VS Code–like tree + README.md (deep) + FILE_EXPLORER.md
   q9-jwt-auth/            ← JWT + role guards + JWT_RBAC.md
+  q10-pipe-directive/     ← TruncatePipe + HighlightDirective + README.md
+  q11-reactive-form/      ← FormBuilder + validators + README.md
+  q12-calculator/         ← phone-style calc engine + UI + README.md
+  q13-structural-for/     ← *appFor ngFor clone + README.md
 ```
 
 

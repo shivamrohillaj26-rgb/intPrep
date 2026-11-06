@@ -12,12 +12,38 @@ Interview one-liner:
 
 Why needed?
 
-Browser JS is single-threaded on the main thread. Heavy work blocks:
+**JavaScript on the main thread is single-threaded** — one call stack, one event loop for your page’s UI. Heavy work blocks:
 
 - rendering
 - input handling
 - animations
 - scrolling
+
+### Common confusion: “JS is single-threaded, so workers still run on that thread?”
+
+**No.** The slogan means: **one JS thread per realm**, not “the whole browser has only one thread.”
+
+| Place | Thread? |
+|---|---|
+| Your Angular/React app, DOM, click handlers | **Main thread** (one JS call stack) |
+| `new Worker('worker.js')` | **Another OS thread** with its **own** JS engine instance, own event loop, own call stack |
+| Browser internals (layout, compositor, network, GPU) | Extra native threads — not your JS |
+
+So: **the worker still runs JavaScript**, but **not on the UI thread**. The UI thread stays free to paint and handle clicks while the worker burns CPU.
+
+```text
+  Browser process
+  ├── Main JS thread     ← your app + DOM  (THIS is the “single thread”)
+  ├── Worker JS thread   ← worker.js  (parallel)
+  ├── Worker JS thread   ← another Worker if you spawn more
+  ├── Layout / compositor / network  (native, not JS)
+```
+
+**Still “single-threaded JS” per worker:** that worker cannot use two cores by itself. **Two workers** = two JS threads. They do **not** share memory by default (no shared `let x`); they talk with `postMessage`. (`SharedArrayBuffer` is the exception — mention only if asked.)
+
+**20s answer:**
+
+> JS on the **page** is single-threaded — that’s why a huge loop freezes the UI. A Web Worker is a **second JS thread** in the same tab. It can’t touch the DOM; we send data with `postMessage`. That’s how we get parallelism without breaking the DOM model.
 
 ---
 
@@ -288,15 +314,103 @@ self.onmessage = (e) => {
 
 ---
 
-## 14. Angular/Frontend Note
+## 14. Angular — basic Web Worker example
 
-Use workers for:
+Use workers for large client-side transforms / parsing.  
+Workers **cannot** update Angular templates. Flow: worker returns data → component sets state → CD updates UI.
 
-- large client-side transforms
-- expensive formatting/parsing before render
+### Generate (Angular CLI)
 
-Do not expect workers to update Angular templates directly.  
-Worker returns data → main thread updates state → change detection/UI updates.
+```bash
+ng generate web-worker heavy
+# creates src/app/heavy.worker.ts (and may hint tsconfig worker setup)
+```
+
+### Worker file — `heavy.worker.ts`
+
+```ts
+/// <reference lib="webworker" />
+
+addEventListener('message', ({ data }) => {
+  // heavy CPU work — runs OFF the UI thread
+  const numbers: number[] = data;
+  let sum = 0;
+  for (const n of numbers) sum += n;
+
+  postMessage(sum); // send result back to component
+});
+```
+
+### Component — create worker, send work, get result
+
+```ts
+import { Component, OnDestroy, signal } from '@angular/core';
+
+@Component({
+  selector: 'app-sum',
+  template: `
+    <button type="button" (click)="run()">Sum in worker</button>
+    <p>Result: {{ result() }}</p>
+  `,
+})
+export class SumComponent implements OnDestroy {
+  readonly result = signal<number | null>(null);
+  private worker?: Worker;
+
+  run(): void {
+    if (typeof Worker === 'undefined') {
+      // SSR / old browser — fall back or skip
+      return;
+    }
+
+    // bundler-friendly URL (esbuild / application builder)
+    this.worker ??= new Worker(
+      new URL('./heavy.worker', import.meta.url),
+    );
+
+    this.worker.onmessage = ({ data }) => {
+      this.result.set(data as number); // back on main thread → update UI
+    };
+
+    this.worker.postMessage([1, 2, 3, 4, 5]); // → worker
+  }
+
+  ngOnDestroy(): void {
+    this.worker?.terminate(); // cleanup
+  }
+}
+```
+
+```text
+Button click (main / Angular)
+   → worker.postMessage(numbers)
+   → heavy.worker.ts loops / computes
+   → postMessage(sum)
+   → component signal/state updates
+   → template re-renders
+```
+
+**Say:** Web Worker in Angular is still browser `Worker` + `postMessage`. CLI just scaffolds the file; Zone/CD only see the result after you set state on the main thread.
+
+---
+
+## 14b. Web Worker vs Service Worker (quick)
+
+| | **Web Worker** | **Service Worker** |
+|---|---|---|
+| Job | Heavy **CPU** off main thread | **Network** proxy: cache / offline / PWA |
+| Typical API | `new Worker(...)`, `postMessage` | `navigator.serviceWorker.register`, `fetch` event |
+| Lives | With the page (terminate on leave) | Can outlive tabs; scoped to origin/path |
+| DOM | No | No |
+| Intercepts HTTP | No | Yes |
+| Angular use | `ng g web-worker` for compute | `@angular/service-worker` / `ngsw` for offline |
+
+One-liner:
+
+> Web Worker = “don’t freeze the UI while calculating.”  
+> Service Worker = “don’t always hit the network; cache / offline.”
+
+Deep SW guide: [06_SERVICE_WORKERS.md](./06_SERVICE_WORKERS.md).
 
 ---
 

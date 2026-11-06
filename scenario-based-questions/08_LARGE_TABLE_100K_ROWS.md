@@ -1,111 +1,84 @@
-# Scenario 8 — Admin Panel with 100,000 Rows
+# Scenario 8 — Admin table with 100,000 rows (Angular)
 
-**Prompt:** An admin panel renders 100,000 rows and becomes unusable. How would you improve performance and user experience?
+**Prompt:** An Angular admin panel renders 100,000 rows and becomes unusable. How do you fix performance and UX?
+
+**NUX analogue:** device lists, alerts — CDK virtual scroll, not `*ngFor` of everything. [ONETRUST_INFINITE_VIRTUAL_SCROLL.md](../onetrust/ONETRUST_INFINITE_VIRTUAL_SCROLL.md)
 
 ---
 
 ## 1. Clarify
 
-- Do users truly need 100k DOM rows at once, or “access to 100k records”?  
-- Sorting/filtering/server vs client?  
-- Row complexity (text vs nested widgets)?  
-- Selection / inline edit / expandable rows?
+Do they need 100k **DOM nodes**, or **access** to 100k records? Sort/filter server vs client? Inline edit?
 
-**Senior reframe:**
-
-> Nobody needs 100,000 DOM nodes. They need **fast access** to any of 100,000 records.
+> Nobody needs 100,000 components. They need **fast access** to any of 100,000 records.
 
 ---
 
 ## 2. Diagnose
 
-Rendering 100k `<tr>`s means:
-
-- Enormous DOM → memory + style/layout cost  
-- React reconcile of huge trees → long tasks  
-- Scroll jank, input lag, browser tab crashes  
-
-Even “optimized React” cannot make 100k complex rows feel native if all mounted.
+- Enormous DOM → layout/paint/memory  
+- Default CD walks 100k bindings (`{{ row.x }}`, worse `{{ fmt(row) }}`)  
+- `@for` / `*ngFor` without `track` → destroy/create on every filter  
+- Even OnPush dies if **all rows are mounted**
 
 ---
 
-## 3. Solution stack (best → supporting)
+## 3. Solution stack (Angular)
 
-### A. Don’t fetch or render everything (UX + perf)
-
-**Server-side pagination / cursor** as default admin pattern:
+### A — Don’t fetch or render everything
 
 ```
-GET /items?cursor=...&limit=50&sort=createdAt&filter=...
+GET /items?cursor=...&limit=50&sort=&filter=
 ```
 
-UI: table page size 50–100, total count approx, filters.
+Page size 50–100. **Server** filter/sort at 100k (indexes).
 
-**Why over client-only virtualization of 100k in memory:**  
-Shipping 100k JSON still costs network + memory. Virtualization fixes DOM; **pagination/cursor fixes data volume**. Prefer **both**: server page *or* windowed fetch + virtualization for “infinite admin”.
+**Why not only virtualize 100k JSON in the browser:** Virtualization fixes DOM; **pagination/cursor fixes download + `JSON.parse` + heap**. Prefer both for “Excel scroll.”
 
-### B. Virtualization (when long scroll is required)
+### B — Virtualize when they insist on long scroll
 
-Libraries: TanStack Virtual, `react-window`, AG Grid (often worth money for admin).
+**Angular CDK** `cdk-virtual-scroll-viewport` + `*cdkVirtualFor` + `itemSize`  
+PrimeNG `[virtualScroll]` on fat dropdowns (NUX pattern).
 
-```
-Viewport shows ~20–50 row DOM nodes
-scroll → recycle row components → bind to data[index]
-```
+~20–50 **DOM** rows. Recycle views.
 
-**Why virtualization over pagination alone:**  
-Power users love dense scroll + jump; Excel-like mental model.  
-**Why not only CSS `content-visibility`:** Helps but weaker than true windowing for React lists; still holds all data in memory.
+Practice: `prevonir-interview-practice` `/q7`.
 
-### C. Column discipline
+### C — Row discipline
 
-- Don’t mount 40 heavy cells per row  
-- Lazy columns / column picker  
-- Avoid rendering charts inside each row  
+- OnPush row component  
+- `@for (row of page; track row.id)` if **not** CDK (paged table)  
+- No charts inside each row  
+- No `{{ compute(row) }}` — pipe or precompute  
 
-### D. Stable row identity & memo
+### D — Filter/sort location
 
-```tsx
-rowKey={row.id}  // never index for dynamic data
-const Row = memo(function Row({ row }) { ... });
-```
-
-### E. Filtering/sorting location
-
-| Dataset size | Where to filter/sort |
+| Size | Where |
 |---|---|
-| ≤ few thousand, simple | Client OK |
-| 100k+ | **Server** (indexes) |
+| Few thousand, simple | Client + `computed()` OK |
+| 100k+ | **Server** |
 
-Client sort of 100k on every keystroke = freeze (Scenario 5 vibes).
+Client sort of 100k on each keystroke = Scenario 5 freeze.
 
-### F. Specialized grids for admin
+### E — Real grids if Excel-like
 
-For serious admin (select all, cell edit, pinned cols):
+AG Grid (Angular) / PrimeNG table with virtual scroll — keyboard, selection, clipboard. Honesty: don’t rebuild that in a week.
 
-- **AG Grid**, Handsontable, TanStack Table + Virtual  
+### F — Bulk / export
 
-**Why AG Grid over homemade:**  
-Keyboard nav, selection model, clipboard — expensive to rebuild; interview honesty scores points.
-
-### G. Progressive UX
-
-- Skeleton rows  
-- “Export CSV” async job for full dataset (don’t dump 100k on screen for export-via-DOM)  
-- Bulk actions via server (`POST /bulk`) with selected IDs / filter query, not 100k checkboxes in DOM  
-- Prefer “select all matching filter” over selecting 100k nodes  
+- Export = **server job**, not DOM dump  
+- “Select all matching filter” = query on server, not 100k checkboxes  
 
 ---
 
-## 4. Target architecture
+## 4. Picture
 
 ```
-Admin Table UX
-  ├── Query: server filter/sort/page (or cursor)
-  ├── Cache: TanStack Query for page data
-  ├── View: virtualized body (N DOM rows)
-  ├── Selection model: id set / “select all in query”
-  └── Export: background job → download link
+Admin table
+  ├── HttpClient / resource  server page + filters
+  ├── CDK virtual viewport   if infinite
+  ├── OnPush row + track id
+  └── Bulk/export            server IDs / filter query
 ```
 
 ---
@@ -114,36 +87,21 @@ Admin Table UX
 
 | Approach | Verdict |
 |---|---|
-| `React.memo` only | ❌ Won’t save 100k mounts |
-| Pagination only (no virtualization) | ✅ Good default UX |
-| Virtualization + full 100k client fetch | ⚠️ OK DOM; risky memory/network |
-| Server cursor + virtualization window | ✅ Best of both |
-| Canvas custom grid | Extreme cases only |
-| `*ngFor` / map all rows | ❌ The bug |
-
-**Chosen answer:**  
-> Treat 100k as a **data access** problem: server query + pagination/cursor, virtualize if infinite scroll required, use a real grid for complex admin UX, bulk ops/export on server. Never mount 100k rows.
+| OnPush only | ❌ Still 100k views |
+| Pagination only | ✅ Default admin UX |
+| CDK virtual + full 100k in memory | ⚠️ DOM OK; heap/network risky |
+| Server cursor + virtual window | ✅ |
+| `*ngFor` of `data()` 100k | ❌ The bug |
 
 ---
 
-## 6. Metrics
+## 6. 60-second spoken answer
 
-- DOM node count in table body (~50 not 100k)  
-- Scroll FPS  
-- Filter p95 latency  
-- Memory after 10 minutes browsing  
-
----
-
-## 7. 60-second spoken answer
-
-> Rendering 100k rows is unusable because the DOM and React tree can’t scale that way. I’d stop treating “100k records” as “100k components.” Data stays on the server with **filter/sort/cursor pagination**; the UI renders a **virtualized** window of rows, ideally with a battle-tested grid if we need Excel-like behavior. Selection and export operate on **IDs or server-side queries**, not on mounting every row. Memoization helps at the row level, but without windowing and server query it’s insufficient.
+> 100k rows is unusable because **DOM and change detection** don’t scale. I’d treat it as **data access**: **server filter/sort/cursor**, and the UI renders a **CDK virtual** window — we already do that on NUX device/alert pickers. Rows are **OnPush** with **`track` by id**. Export and bulk actions use **IDs or the same query**, not mounting every row. Memo/OnPush without windowing is not enough.
 
 ---
 
 ## Related
 
-- Scenario 5 — high-frequency updates + virtualization  
-- Your practice: `prevonir-interview-practice` q7 virtual list  
-- `../frontend-system-design/03_REFLOW_REPAINT_RENDERING_PERFORMANCE.md`  
-- Pagination types (offset vs cursor vs UI patterns): `../frontend-system-design/12_PAGINATION_TYPES_FRONTEND_SYSTEM_DESIGN.md`
+- Scenario 5 — ticks + virtualize  
+- [12_PAGINATION…](../frontend-system-design/12_PAGINATION_TYPES_FRONTEND_SYSTEM_DESIGN.md)

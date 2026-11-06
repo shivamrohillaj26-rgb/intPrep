@@ -70,6 +70,7 @@ In interviews, polyfills test whether you understand:
 - Wrap values with `Promise.resolve(item)`
 - Keep result order by index for `all` / `allSettled`
 - Outer promise settles only once
+- Full constructor polyfill (`MyPromise`): states + `then` chaining + microtask async
 
 
 
@@ -1320,6 +1321,174 @@ Static helpers:
 
 
 
+## 18b. Full `Promise` constructor polyfill (`MyPromise`)
+
+> Previously this guide covered **static** helpers (`all` / `race` / …) that assume a real `Promise` exists.  
+> Interviews also ask: **implement Promise itself**.
+
+### What you must support (MVP)
+
+| Piece | Behavior |
+|---|---|
+| States | `pending` → `fulfilled` **or** `rejected` (settle **once**) |
+| Executor | `new MyPromise((resolve, reject) => { … })` runs **sync** |
+| `then` | Registers callbacks; runs **async** (microtask); returns a **new** promise |
+| Chaining | `then` return value / thrown error / returned promise → next link |
+| `catch` | `then(undefined, onReject)` sugar |
+| `resolve`/`reject` after settle | No-ops |
+
+Optional follow-ups: `finally`, `MyPromise.resolve` / `reject`, static `all` on top of `MyPromise`.
+
+### Interview-simple implementation
+
+```js
+class MyPromise {
+  constructor(executor) {
+    this.state = 'pending'; // pending | fulfilled | rejected
+    this.value = undefined;
+    this.reason = undefined;
+    this.onFulfilled = []; // queued thens while pending
+    this.onRejected = [];
+
+    const resolve = (value) => {
+      if (this.state !== 'pending') return;
+      this.state = 'fulfilled';
+      this.value = value;
+      this.onFulfilled.forEach((fn) => fn(value));
+      this.onFulfilled = [];
+      this.onRejected = [];
+    };
+
+    const reject = (reason) => {
+      if (this.state !== 'pending') return;
+      this.state = 'rejected';
+      this.reason = reason;
+      this.onRejected.forEach((fn) => fn(reason));
+      this.onFulfilled = [];
+      this.onRejected = [];
+    };
+
+    try {
+      executor(resolve, reject);
+    } catch (err) {
+      reject(err);
+    }
+  }
+
+  then(onFulfilled, onRejected) {
+    // Always return a NEW promise (chaining)
+    return new MyPromise((resolve, reject) => {
+      const handleFulfilled = (value) => {
+        queueMicrotask(() => {
+          try {
+            if (typeof onFulfilled !== 'function') {
+              resolve(value); // pass-through
+              return;
+            }
+            const result = onFulfilled(value);
+            // If handler returns a thenable, adopt its state
+            if (result && typeof result.then === 'function') {
+              result.then(resolve, reject);
+            } else {
+              resolve(result);
+            }
+          } catch (err) {
+            reject(err);
+          }
+        });
+      };
+
+      const handleRejected = (reason) => {
+        queueMicrotask(() => {
+          try {
+            if (typeof onRejected !== 'function') {
+              reject(reason); // pass-through
+              return;
+            }
+            const result = onRejected(reason);
+            if (result && typeof result.then === 'function') {
+              result.then(resolve, reject);
+            } else {
+              resolve(result); // catch recovering → fulfill next
+            }
+          } catch (err) {
+            reject(err);
+          }
+        });
+      };
+
+      if (this.state === 'fulfilled') {
+        handleFulfilled(this.value);
+      } else if (this.state === 'rejected') {
+        handleRejected(this.reason);
+      } else {
+        this.onFulfilled.push(handleFulfilled);
+        this.onRejected.push(handleRejected);
+      }
+    });
+  }
+
+  catch(onRejected) {
+    return this.then(undefined, onRejected);
+  }
+
+  static resolve(value) {
+    if (value instanceof MyPromise) return value;
+    return new MyPromise((resolve) => resolve(value));
+  }
+
+  static reject(reason) {
+    return new MyPromise((_, reject) => reject(reason));
+  }
+}
+```
+
+### Tiny demos
+
+```js
+new MyPromise((res) => res(1))
+  .then((v) => v + 1)
+  .then((v) => console.log(v)); // 2 (async — after sync code)
+
+new MyPromise((_, rej) => rej('boom'))
+  .catch((e) => 'recovered')
+  .then(console.log); // recovered
+
+console.log('sync first');
+```
+
+Typical order: `sync first` then `2` / `recovered`.
+
+### Why `queueMicrotask`?
+
+Native `then` callbacks are **microtasks** — not sync, not `setTimeout` macrotasks.
+
+```js
+console.log(1);
+MyPromise.resolve().then(() => console.log(2));
+console.log(3);
+// 1 3 2
+```
+
+### Spoken 45s
+
+> I’d implement a Promise with three states and settle only once. The executor runs synchronously and receives resolve/reject. `then` always returns a new promise, queues handlers as microtasks, and if a handler returns a thenable I adopt its settlement. While pending I store callbacks in arrays and flush them on settle. `catch` is just `then` with an onReject.
+
+### What this MVP skips (say if asked)
+
+| Advanced | Notes |
+|---|---|
+| Full Promises/A+ resolution procedure | Same-object cycles, exotic thenables |
+| `finally` | Run on settle; pass through value/reason |
+| Unhandled rejection tracking | Host-specific |
+| Subclassing `Symbol.species` | Rare in interviews |
+
+For **static** `all` / `race` / `allSettled` / `any` polyfills (on native `Promise`), see sections 19–22. You can rewrite them against `MyPromise` the same way.
+
+---
+
+
+
 ## 19. `Promise.all`
 
 
@@ -1811,6 +1980,7 @@ A: `race` = first settle; `any` = first fulfill.
 - [ ] Explain native `filter`, then write `myFilter`
 - [ ] Explain native `reduce` with and without initial value
 - [ ] Explain `call` / `apply` / `bind` differences, implement all three
+- [ ] **Implement full `MyPromise` (states, then chaining, microtask)** ← §18b
 - [ ] Explain `Promise.all` fail-fast + order, implement it
 - [ ] Explain and implement `race`, `allSettled`, `any`
 - [ ] Explain and implement `Object.assign` and `Object.create`
@@ -1843,6 +2013,7 @@ OBJECT
 create   -> new object with given prototype
 assign   -> shallow merge into target
 keys/values/entries -> own enumerable data views
+groupBy  -> Object.groupBy polyfill (DSA §14) — buckets by callback key
 
 FUNCTION
 call     -> run now, args list, set this

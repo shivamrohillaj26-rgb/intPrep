@@ -30,6 +30,7 @@ Folder: `css-interview-prep/`
 | 11 | Centering & Common Patterns | [11_CENTERING_AND_COMMON_PATTERNS.md](./11_CENTERING_AND_COMMON_PATTERNS.md) |
 | 12 | Tables + Chatbot Layout | [12_TABLES_AND_CHATBOT_LAYOUT.md](./12_TABLES_AND_CHATBOT_LAYOUT.md) |
 | 13 | Responsive Forms (Grid + Flex) | [13_RESPONSIVE_FORMS_GRID_FLEX.md](./13_RESPONSIVE_FORMS_GRID_FLEX.md) |
+| **14** | **Pseudo-classes & pseudo-elements** (`:hover` / `::before` / `:has`) | [14_PSEUDO_CLASSES_PSEUDO_ELEMENTS.md](./14_PSEUDO_CLASSES_PSEUDO_ELEMENTS.md) |
 
 ---
 
@@ -46,6 +47,7 @@ Folder: `css-interview-prep/`
 9. Units/rem/clamp
 10. Centering patterns
 11. Motion basics
+12. Pseudo-classes / pseudo-elements (GOC CSS3)
 
 ---
 

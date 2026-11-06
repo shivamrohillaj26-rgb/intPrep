@@ -61,6 +61,8 @@ Benefits you should name:
 
 Signals do **not** delete RxJS. They replace *local UI/state plumbing*; RxJS still wins for async streams, cancellation, retry, websockets, complex time operators.
 
+**Interview card (Signals vs RxJS, “are they alternatives?”):** [ANGULAR_SIGNALS_VS_RXJS.md](./ANGULAR_SIGNALS_VS_RXJS.md)
+
 ---
 
 ## 3. Core Mental Model: Producer → Consumer Graph
@@ -1012,4 +1014,4 @@ For effects in tests, flush microtasks / use Angular testing utilities; assert *
 
 ---
 
-*Want next:* a twin **Change Detection + OnPush + Zoneless** guide that ties directly into how signal reads mark views dirty.
+*Twin guide:* [ANGULAR_CHANGE_DETECTION_ONPUSH_ZONELESS.md](./ANGULAR_CHANGE_DETECTION_ONPUSH_ZONELESS.md) — Default vs OnPush vs Zone/zoneless, version defaults, showcase example, interview Qs.

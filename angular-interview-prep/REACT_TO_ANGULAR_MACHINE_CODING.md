@@ -13,6 +13,8 @@ From a React interview experience dump — what to practice in **Angular** inste
 | Big list windowing | DIY virtual list (or CDK later) | `/q7` |
 | File explorer / VS Code sidebar | Recursive tree-node + expanded Set | `/q8` |
 | Typeahead / async search | Signals + RxJS + async pipe | `/q4` |
+
+**How to run a “design this component” interview:** [ANGULAR_COMPONENT_DESIGN_ROUND.md](./ANGULAR_COMPONENT_DESIGN_ROUND.md) (autocomplete walkthrough).
 | Auth guard flows | Service + functional guard | `/q2` |
 | JWT + role-based access | JwtAuthService + jwtAuthGuard + roleGuard + interceptor | `/q9` |
 
@@ -67,3 +69,5 @@ Deep guides:
 ## Spoken line when they say “in React we do X”
 
 > Same UI problem — in Angular I’d use components + signals/RxJS, DI for shared state, route-level lazy loading, and OnPush/trackBy for list performance. The browser fundamentals (event loop, reflow, event propagation) stay the same.
+
+**Why Angular vs React/Next (managerial / “why this stack”):** [WHY_ANGULAR_VS_REACT_NEXT.md](./WHY_ANGULAR_VS_REACT_NEXT.md)

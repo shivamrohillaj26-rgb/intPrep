@@ -220,7 +220,7 @@ Fix: LRU cache, weak keys where needed, memoize only expensive pure functions.
 
 > Auth ≠ security. I’d audit token storage (HttpOnly cookie vs localStorage XSS risk), XSS surfaces, CSRF on cookie sessions, `SameSite`, secure/HTTPS flags, and that APIs don’t trust the UI alone.
 
-See full guide: `frontend-system-design/10_FRONTEND_AUTH_SECURITY.md`.
+See: `frontend-system-design/10_FRONTEND_AUTH_SECURITY.md` (storage) · `frontend-system-design/17_CYBERATTACKS_FRONTEND_INTERVIEW.md` (attack catalog).
 
 ---
 

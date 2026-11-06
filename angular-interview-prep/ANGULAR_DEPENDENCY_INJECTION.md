@@ -127,6 +127,18 @@ Why `providedIn: 'root'` is preferred:
 - **Tree-shakeable** (unused service can be dropped from bundle)
 - No need to list it in `app.config` providers for normal cases
 
+Other `providedIn` values (you almost never need them):
+
+| Value | Meaning |
+|---|---|
+| `'root'` | App EnvironmentInjector — **use this** |
+| `'platform'` | Parent of root; one instance for the whole page if two Angular apps share it |
+| `'any'` | Deprecated — one instance per lazy NgModule |
+| `SomeModule` | Legacy NgModule scope |
+| omit / `null` | Not registered; you must use a `providers` array |
+
+There is no `providedIn: 'component'` or `'route'`. Full examples: [ONETRUST_ANGULAR_DI_PROVIDERS.md](../onetrust/ONETRUST_ANGULAR_DI_PROVIDERS.md) (after Step 1).
+
 ### Provide in application config
 
 ```ts
@@ -159,6 +171,168 @@ export class ChatBot {
 ```
 
 Each `ChatBot` instance gets its **own** `ChatStateService` (not shared with the whole app).
+
+---
+
+## 5b. Tree-shakable vs non-tree-shakable services
+
+Interviewers often ask: *“When is a service tree-shakeable?”*
+
+### Tree-shakable (preferred default)
+
+```ts
+@Injectable({ providedIn: 'root' })
+export class AnalyticsService { /* ... */ }
+```
+
+- Registered via `providedIn` on the class itself.
+- If **no one imports/injects** this service, the bundler can **drop the whole class** from the final JS.
+- Still an **app singleton** when it *is* used.
+
+Also tree-shakeable-ish: `providedIn: 'platform'` / feature patterns that keep the provider next to the class (not a hard-wired NgModule list).
+
+### Non-tree-shakable (classic / “eager” provide)
+
+You register the service in a **providers array** that the app always loads:
+
+```ts
+// ❌ Not tree-shakeable in the Angular sense
+// Even if nothing injects UnusedService, listing it here can keep it in the graph
+@NgModule({
+  providers: [UnusedService],
+})
+export class AppModule {}
+
+// same idea in standalone app config — anything listed is part of the app graph
+export const appConfig: ApplicationConfig = {
+  providers: [
+    UnusedService, // referenced from entry → harder / impossible to shake away
+  ],
+};
+```
+
+Older style (also non-tree-shakeable when the module is always imported):
+
+```ts
+@Injectable() // no providedIn
+export class LegacyService {}
+
+@NgModule({
+  providers: [LegacyService], // must list it; module import pulls it in
+})
+export class SharedModule {}
+```
+
+| Style | Tree-shakeable? | When unused |
+|---|---|---|
+| `@Injectable({ providedIn: 'root' })` | **Yes** | Can be removed from bundle |
+| Listed in `NgModule.providers` / always-loaded `appConfig.providers` | **No** (eager) | Stays reachable via that providers array |
+| Provided only on a **lazy** route/component that never loads | Effectively unused at runtime | Code for that chunk may never download |
+
+**Say in interview:**
+
+> `providedIn: 'root'` is tree-shakeable because the provider lives with the service class — if nothing references the class, the compiler/bundler can drop it. Putting the service in a module or app `providers` array creates a hard reference from code that always loads, so it won’t shake out even if never injected.
+
+### What tree shaking can remove vs cannot (Angular + bundle)
+
+Tree shaking = **dead code elimination** on the module graph (see [11_TREE_SHAKING…](../frontend-system-design/11_TREE_SHAKING_MARK_AND_SWEEP.md)).
+
+| Often **can** be shaken | Usually **cannot** / stays |
+|---|---|
+| Unused `providedIn: 'root'` service never imported | Service listed in eager `providers` |
+| Unused exported functions/classes with no importers | Side-effect imports (`import './polyfill'`) |
+| Unused named ESM exports from a lib (`sideEffects: false`) | CommonJS `require` / dynamic hard-to-analyze code |
+| Dead branches after build knows they’re unused | Anything referenced from `main.ts` / routes you always load |
+| Optional feature service only imported by lazy route you never open | Strings/templates that reference a pipe/component (Angular keeps them if declared in a loaded component) |
+
+**Angular-specific gotchas**
+
+1. **Components/pipes/directives in a template** are referenced by the compiler → kept.  
+2. **Providers arrays** are references → kept.  
+3. **Barrel files** (`index.ts` re-export everything) can accidentally pull unused services into the graph.  
+4. Tree shaking ≠ “service not a singleton.” Scoping (root vs component) is **runtime DI**; tree shaking is **build-time** removal.
+
+---
+
+## 5c. New service instance for a component (not the root singleton)
+
+Goal: *this component (and its children) get their own instance*, separate from `providedIn: 'root'`.
+
+### Pattern 1 — provide on the component (most common)
+
+```ts
+@Injectable() // or keep providedIn:'root' — local providers still win for this subtree
+export class FormDraftService {
+  draft = '';
+}
+
+@Component({
+  selector: 'app-checkout',
+  providers: [FormDraftService], // ← NEW ElementInjector entry
+  template: `<app-checkout-step />`, // child can inject same instance
+})
+export class CheckoutComponent {
+  private draft = inject(FormDraftService); // instance A
+}
+
+@Component({
+  selector: 'app-checkout-step',
+  template: `...`,
+})
+export class CheckoutStepComponent {
+  private draft = inject(FormDraftService); // same instance A (child of Checkout)
+}
+```
+
+Open **two** `<app-checkout>` on one page → **two** `FormDraftService` instances.
+
+### Pattern 2 — override a root service for one component only
+
+```ts
+@Injectable({ providedIn: 'root' })
+export class Logger {
+  log(m: string) { console.log('root', m); }
+}
+
+@Component({
+  providers: [
+    { provide: Logger, useClass: Logger }, // new instance for this component tree
+  ],
+})
+export class IsolatedWidget {
+  private logger = inject(Logger); // NOT the root singleton
+}
+```
+
+Lookup hits the **component ElementInjector first**, so local provider wins over root.
+
+### Pattern 3 — route-level instance (feature scope)
+
+```ts
+export const CHECKOUT_ROUTES: Routes = [
+  {
+    path: 'checkout',
+    providers: [CheckoutFacade], // one instance for this route subtree
+    children: [/* ... */],
+  },
+];
+```
+
+### Pattern 4 — don’t do this for DI scoping
+
+```ts
+// ❌ bypasses DI — hard to test, not the Angular way
+const s = new FormDraftService();
+```
+
+### Quick decision
+
+| Need | Do this |
+|---|---|
+| One shared app instance + shake if unused | `providedIn: 'root'` |
+| New instance per component | `providers: [MyService]` on that `@Component` |
+| New instance per feature/route | Route `providers: [MyService]` |
+| Force non-shakeable global register | List in `appConfig.providers` / NgModule (usually avoid) |
 
 ---
 
@@ -360,6 +534,73 @@ Interview line:
 
 > Classes can be their own tokens. For interfaces/config, we use `InjectionToken` because interfaces disappear at runtime.
 
+### Why not a `const`? (they will push this)
+
+A constant **does** work for a frozen magic number:
+
+```ts
+export const DEFAULT_PAGE_SIZE = 25; // fine — never mocked, never per-env
+```
+
+`InjectionToken` is for values that must be **provided at the edge** (bootstrap, host, TestBed, one route) while the **feature only `inject()`s**.
+
+**Story 1 — MFE / NUX (use this):**
+
+Devices is a **remote**, built **once**. API host is `idms-qa3` vs `idms` production, filled at **runtime** from `window.EnvironmentData` on the **host**.
+
+```ts
+// ❌ constants.ts inside Devices (or a shared file baked at ng build)
+export const REST_API = 'https://idms-qa3.netradyne.com';
+this.http.get(`${REST_API}/devices`);
+```
+
+What breaks:
+
+- Same Devices **SHA** cannot serve qa3 and prod — URL is **compiled in**.  
+- Remote must import host `environment.ts` → **illegal coupling** (and often a different repo).  
+- Tests hit the real farm unless you Jest-mock the module.
+
+```ts
+// ✅ kernel
+export const REST_API_BASE = new InjectionToken<string>('REST_API_BASE');
+
+// host app.config (reads nd-env-config / EnvironmentData)
+{ provide: REST_API_BASE, useFactory: () => window.EnvironmentData.idmsHost }
+
+// devices (any env)
+private readonly api = inject(REST_API_BASE);
+this.http.get(`${this.api}/devices`);
+```
+
+Host **provides**; Devices **injects**. One remote artifact, every farm. That is the justification.
+
+**Story 2 — two strings (why `inject(string)` is impossible):**
+
+```ts
+inject(String); // which string? API? CDN? timeout as number vs url?
+```
+
+```ts
+export const API_URL = new InjectionToken<string>('API_URL');
+export const CDN_URL = new InjectionToken<string>('CDN_URL');
+```
+
+Same TypeScript type; **two lockers**. A const file can export two consts, but you **cannot override one in TestBed / one route** without DI.
+
+**Story 3 — TestBed:**
+
+```ts
+TestBed.configureTestingModule({
+  providers: [{ provide: REST_API_BASE, useValue: 'http://localhost:8080' }],
+});
+```
+
+You cannot `provide` a `const`. You mock the **module**, which is brittle.
+
+**Spoken 25s:**
+
+> A const is fine for `PAGE_SIZE = 25`. For API base I use an InjectionToken because the **value is chosen at the edge** — host env script, TestBed, maybe one tenant route — and features only `inject(REST_API_BASE)`. On NUX the remote is built once; qa3 vs prod is `EnvironmentData` on the host. If Devices imported a constant, we’d bake one URL and rebuild per env. Token is “depend on a key, provide the value.” Interfaces also need a token because they vanish at runtime.
+
 ---
 
 ## 11. Resolution modifiers
@@ -530,6 +771,14 @@ A: Configuration that tells the injector how to create a dependency for a token 
 ### Q: Why `providedIn: 'root'`?
 
 A: Registers the service in the root injector as a singleton and keeps it tree-shakeable.
+
+### Q: How do you make a non-tree-shakable service?
+
+A: Provide it eagerly in `NgModule.providers` or always-loaded `appConfig.providers` without relying on `providedIn`. That creates a hard reference from code that always boots, so the bundler won’t drop it even if nothing injects it. Prefer `providedIn: 'root'` unless you have a reason.
+
+### Q: How do you get a new service instance for one component?
+
+A: Add the service to that component’s `providers` (or `viewProviders`). Angular creates an ElementInjector entry for that component instance; children reuse it, sibling components get their own if they also provide it. Local provider beats `providedIn: 'root'` in the lookup order.
 
 ### Q: Constructor injection vs `inject()`?
 

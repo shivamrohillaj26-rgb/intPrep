@@ -16,6 +16,7 @@ Cross-links to deeper utility guides in this folder:
 - WeakMap/WeakSet → `WEAKMAP_WEAKSET.md`
 - Polyfills (map/filter/reduce/Promise) → `POLYFILLS_README.md`
 - EventEmitter → `EVENT_EMITTER.md`
+- Extra coding-round set (product except self, 3Sum **O(1) extra**, LIS…) → `DSA_CODING_ROUND_CLASSICS.md`
 
 ---
 
@@ -59,7 +60,7 @@ Frontend tie-ins:
 | Hash Map | Two Sum, anagram, frequency | lookups, indexes, counts |
 | Sliding window | Longest unique substring | search, uniqueness windows |
 | Stack | Valid parentheses | nested UI/token matching |
-| Two pointers | Palindrome | string cleanup |
+| Two pointers | Palindrome, **Two Sum sorted, 3Sum, container, move zeros** | string cleanup, **O(1) space follow-ups** |
 | Recursion / stack | Flatten nested array / object | nested JSON/menus, form/API shaping |
 | Intervals | Merge intervals | calendar/schedule UI |
 | BFS | Level order tree | tree-like UI levels |
@@ -135,7 +136,57 @@ function twoSum(nums, target) {
 
 **Say:** “Complement lookup with a Map — one pass.”
 
+### If the array is **not** sorted — what do you do?
+
+**Two pointers only work on a sorted array.** Unsorted `[3, 2, 4]`, target `6`: ends are `3` and `4` (sum 7), you have no rule for which pointer to move.
+
+| Need | Unsorted Two Sum |
+|---|---|
+| **Indices**, one pair, fast | **Map** — this is the default. O(n) time, O(n) space |
+| **O(1) extra space**, they allow O(n²) | Nested loops. No Map. |
+| **Values only** (not original indices), O(1) extra | **Sort first** (destroys index order), then two pointers. O(n log n) + O(n) |
+| Original indices **and** sort | Sort `{value, index}` pairs — that’s **O(n) extra** anyway, so Map is simpler |
+
+```js
+// unsorted + O(1) extra space (slow)
+function twoSumBrute(nums, target) {
+  for (let i = 0; i < nums.length; i++) {
+    for (let j = i + 1; j < nums.length; j++) {
+      if (nums[i] + nums[j] === target) return [i, j];
+    }
+  }
+  return [];
+}
+```
+
+**Spoken 20s:**
+
+> If it’s unsorted and they want **indices**, I use a **Map** — I can’t two-pointer yet. If they forbid extra space, I do **O(n²)** nested loops, or I **sort** and two-pointer **only if** we return values, not original indexes. That’s why 3Sum sorts: we return the numbers, not indexes.
+
+**Why 3Sum can sort:** output is the triplet **values**. Two Sum classic output is **indexes** — sorting without storing indexes would be wrong.
+
+### Follow-up they **will** ask: **already sorted** array, **O(1) extra space**
+
+If the array is **already sorted** (Two Sum II), drop the Map. Two pointers:
+
+```js
+function twoSumSorted(nums, target) {
+  let l = 0;
+  let r = nums.length - 1;
+  while (l < r) {
+    const sum = nums[l] + nums[r];
+    if (sum === target) return [l, r];
+    if (sum < target) l++;
+    else r--;
+  }
+  return [];
+}
+```
+
+**Time `O(n)`**, **Space `O(1)` extra.** This is the inner loop of **3Sum**.
+
 ### Follow-up: all pairs
+
 
 ```js
 function twoSumAllPairs(nums, target) {
@@ -154,6 +205,94 @@ function twoSumAllPairs(nums, target) {
   return out;
 }
 ```
+
+---
+
+## 1b. 3Sum (GOC stuck here) — Map vs **O(1) extra space**
+
+**LeetCode 15.** They often say “threesome” / “triplets that sum to zero.”
+
+### Problem
+
+Given `nums` (ints, can be negative / duplicates), return **all unique triplets** `[a,b,c]` such that `a + b + c === 0`. Same index cannot be reused. Order of triplets doesn’t matter; **duplicate triplets are not allowed**.
+
+```text
+[-1, 0, 1, 2, -1, -4]  →  [[-1,-1,2], [-1,0,1]]
+```
+
+### What you gave (valid, but **O(n) extra space**)
+
+Fix `i`, then Two Sum on the rest with a **Set / Map**. Time **O(n²)**. Extra space **O(n)** for the set, plus often another Set of string keys to unique the triplets.
+
+```js
+function threeSumHash(nums) {
+  const n = nums.length;
+  const uniq = new Set();
+
+  for (let i = 0; i < n; i++) {
+    const seen = new Set();
+    for (let j = i + 1; j < n; j++) {
+      const need = -nums[i] - nums[j];
+      if (seen.has(need)) {
+        const t = [nums[i], nums[j], need].sort((a, b) => a - b);
+        uniq.add(t.join(','));
+      }
+      seen.add(nums[j]);
+    }
+  }
+
+  return [...uniq].map((s) => s.split(',').map(Number));
+}
+```
+
+**Say if they ask space:** “The inner `seen` Set is O(n). That’s the Map Two Sum. You wanted no hash.”
+
+### What they wanted — sort + two pointers (**O(n²) time, O(1) extra**)
+
+Same idea as Two Sum **on a sorted array**: no Map.
+
+1. **Sort** in place (`(a,b) => a-b` — JS default sort is **lexicographic**, `[10,2]` becomes wrong).  
+2. Fix `i`. Need `nums[l] + nums[r] === -nums[i]`.  
+3. `l = i+1`, `r = n-1`. Sum too small → `l++`. Too big → `r--`. Hit → record, then **skip duplicates** on `l` and `r`.  
+4. Skip duplicate **anchors** (`nums[i] === nums[i-1]`). Compare **backwards** — `=== nums[i+1]` and `continue` **drops** `[-1,-1,2]`.
+
+```js
+function threeSum(nums) {
+  nums.sort((a, b) => a - b);
+  const res = [];
+  const n = nums.length;
+
+  for (let i = 0; i < n - 2; i++) {
+    if (nums[i] > 0) break; // rest are ≥ i, cannot sum to 0
+    if (i > 0 && nums[i] === nums[i - 1]) continue;
+
+    let l = i + 1;
+    let r = n - 1;
+    while (l < r) {
+      const sum = nums[i] + nums[l] + nums[r];
+      if (sum === 0) {
+        res.push([nums[i], nums[l], nums[r]]);
+        while (l < r && nums[l] === nums[l + 1]) l++;
+        while (l < r && nums[r] === nums[r - 1]) r--;
+        l++;
+        r--;
+      } else if (sum < 0) l++;
+      else r--;
+    }
+  }
+  return res;
+}
+```
+
+**Time:** O(n²) — sort O(n log n) dominated by nested scan.  
+**Space they want:** **O(1) extra** besides the **output** array.  
+**Honest JS:** `Array.sort` uses scratch memory (Timsort ~O(n)). In interviews, “O(1) extra” means **no HashMap / no result-dedup Set**. Output of size k doesn’t count.
+
+**Drill until cold:** write it twice from memory. Skip-duplicates is where people fail.
+
+Same pattern: **3Sum closest**, **3Sum smaller**, **4Sum** (fix two, then two pointers).
+
+Full short copy also in [DSA_CODING_ROUND_CLASSICS.md](./DSA_CODING_ROUND_CLASSICS.md) §9.
 
 ---
 
@@ -279,31 +418,157 @@ function isValid(s) {
 
 ### Problem
 
-Given an array of intervals `intervals` where `intervals[i] = [starti, endi]`, merge all **overlapping** intervals and return an array of the non-overlapping intervals that cover the input.
+You get time ranges `[start, end]`. Some overlap. Return the **smallest list of ranges** that cover the same time, with overlaps **fused**.
 
-Usually treat touching intervals as overlapping too: `[1,2]` and `[2,3]` → `[1,3]`.
+Usually **touching counts as overlap**: `[1,2]` and `[2,3]` → `[1,3]` (calendar: one busy block).
 
-### Examples
+Frontend: calendar busy slots, booking, “merge selected date ranges.”
+
+---
+
+### What “overlap” looks like (number line)
+
+Each interval is a segment. Merge = glue segments that share any point.
 
 ```text
-Input:  [[1,3],[2,6],[8,10],[15,18]]
-Output: [[1,6],[8,10],[15,18]]
-Why:    [1,3] overlaps [2,6] → [1,6]
-
-Input:  [[1,4],[4,5]]
-Output: [[1,5]]
+[1,3]   1--------3
+[2,6]        2-----------6
+            they share 2–3  →  one bar  1----------------6
 ```
 
-### Edge cases
+```text
+NO overlap
 
-- Empty input → `[]`
-- Single interval
-- Already sorted vs unsorted
-- Fully nested interval inside another
+[1,3]   1--------3
+[8,10]                 8------10
+            gap 3→8  →  keep TWO bars
+```
 
-### Intuition
+```text
+TOUCHING (usually merge)
 
-Sort by start. Overlap only happens with the last merged interval.
+[1,4]   1-----------4
+[4,5]               4--5
+            same point 4  →  1--------------5
+```
+
+```text
+NESTED (fully inside)
+
+[1,10]  1----------------------10
+[3,5]         3----5
+            inside  →  still just  1----------------------10
+            (end stays 10, not 5)
+```
+
+**Rule in one line:** two sorted-by-start intervals `[a,b]` then `[c,d]` overlap if **`c <= b`**. Then the merge is `[a, max(b,d)]`.
+
+```text
+         a--------b
+              c-----------d     c <= b  → overlap
+         a----------------d     new end = max(b,d)
+
+         a--------b
+                    c----d      c > b   → gap, start a NEW interval
+```
+
+---
+
+### Why sort first (the whole trick)
+
+If you don’t sort, a later interval can sit **between** two you already “finished”:
+
+```text
+UNSORTED input:  [8,10] then [1,3] then [2,6]
+
+If you scan left-to-right as given:
+  take [8,10]
+  [1,3] does NOT overlap 8–10   → you’d keep both
+  [2,6] overlaps [1,3] but you already walked past…
+
+You miss that 1–3 and 2–6 are one block.
+
+SORTED by START:
+  [1,3] [2,6] [8,10]
+  now overlap can ONLY happen with the **last bar you emitted**.
+  That’s why the algorithm is so short.
+```
+
+```text
+After sort by start:
+
+  time →
+  1    2    3    4    5    6    7    8    9   10        15   18
+  |----[1,3]----|
+       |--------[2,6]--------|
+                                |----[8,10]----|
+                                                    |--[15,18]--|
+```
+
+---
+
+### Walkthrough (draw this in the interview)
+
+Input: `[[1,3],[2,6],[8,10],[15,18]]`  
+Already sorted by start.
+
+**Seed `out` with a copy of the first interval** so we always have a “current blob” to extend.
+
+```text
+out = [ [1,3] ]
+
+Step i=1  next = [2,6]
+  last = [1,3]
+  2 <= 3 ? YES overlap
+  last.end = max(3, 6) = 6
+
+  1--------3
+       2-----------6
+  1----------------6     ← one blob in out
+
+Step i=2  next = [8,10]
+  last = [1,6]
+  8 <= 6 ? NO  (gap)
+  push [8,10]
+
+  1----------------6  ....  8------10
+
+Step i=3  next = [15,18]
+  last = [8,10]
+  15 <= 10 ? NO
+  push [15,18]
+
+out = [[1,6],[8,10],[15,18]]
+```
+
+**Nested case** `[1,10]` then `[3,5]`:
+
+```text
+last = [1,10]
+3 <= 10 ? YES
+last.end = max(10, 5) = 10     ← must use max, not next.end
+```
+
+If you wrote `last[1] = end` without `Math.max`, a short inner meeting would **shrink** the long one. Wrong.
+
+---
+
+### What the code is doing (pointer on `out`)
+
+```text
+sorted:  A     B      C       D
+         [1,3] [2,6]  [8,10]  [15,18]
+
+out starts as [ A ]
+
+     compare B with last of out  → merge into last
+     compare C with last of out  → no → append C (C is new last)
+     compare D with last of out  → no → append D
+```
+
+You never compare B with C directly. After merge, B is **inside** the last blob.
+
+---
 
 ### Code
 
@@ -312,23 +577,31 @@ function mergeIntervals(intervals) {
   if (!intervals.length) return [];
 
   const sorted = [...intervals].sort((a, b) => a[0] - b[0]);
-  const out = [sorted[0].slice()];
+  const out = [sorted[0].slice()]; // copy so we don't mutate input
 
   for (let i = 1; i < sorted.length; i++) {
     const [start, end] = sorted[i];
     const last = out[out.length - 1];
 
-    if (start <= last[1]) last[1] = Math.max(last[1], end);
-    else out.push([start, end]);
+    if (start <= last[1]) {
+      last[1] = Math.max(last[1], end); // extend blob
+    } else {
+      out.push([start, end]); // new blob
+    }
   }
 
   return out;
 }
 ```
 
-**Time `O(n log n)`**, **Space `O(n)`**
+**Time `O(n log n)`** (sort). Scan is O(n).  
+**Space `O(n)`** for `out` (and the sorted copy).
 
-Frontend tie-in: calendar busy blocks, booking ranges.
+**Ask:** closed intervals (`<=`) vs half-open (`start < last[1]`). Calendars usually `<=`.
+
+**Spoken 25s:**
+
+> Sort by start. Keep a list of merged blobs. Each next range can only overlap the **last** blob. If its start is `<=` last end, stretch last end with `max`. Else push a new blob. That’s why nested and touching ranges work.
 
 ---
 
@@ -409,7 +682,106 @@ Frontend tie-in: nested comments, menu trees, irregular API arrays.
 
 ## 6. Reverse Linked List
 
-### Problem
+### How to **make** a linked list (JS)
+
+JS has no built-in list. You build **nodes**. Each node is a small object:
+
+```text
+  node
+  ┌─────────┬──────────┐
+  │ val: 1  │ next ──────────►  next node  (or null = end)
+  └─────────┴──────────┘
+```
+
+**One node:**
+
+```js
+class ListNode {
+  constructor(val, next = null) {
+    this.val = val;
+    this.next = next;
+  }
+}
+
+const a = new ListNode(1); // 1 -> null
+```
+
+**Chain by hand** (draw arrows as `.next`):
+
+```js
+const n1 = new ListNode(1);
+const n2 = new ListNode(2);
+const n3 = new ListNode(3);
+n1.next = n2;
+n2.next = n3;
+// n3.next is already null
+
+// n1 is the HEAD
+// 1 -> 2 -> 3 -> null
+```
+
+```text
+head
+  │
+  ▼
+┌───┬───┐    ┌───┬───┐    ┌───┬───┐
+│ 1 │ ──┼───►│ 2 │ ──┼───►│ 3 │ ──┼───► null
+└───┴───┘    └───┴───┘    └───┴───┘
+```
+
+You can also nest constructors (builds **backwards** — innermost is the tail):
+
+```js
+const head = new ListNode(1, new ListNode(2, new ListNode(3)));
+// 1 -> 2 -> 3 -> null
+```
+
+**From an array** (what you do in interviews / tests):
+
+```js
+function listFromArray(arr) {
+  const dummy = new ListNode(0); // fake start; skip at the end
+  let tail = dummy;
+  for (const val of arr) {
+    tail.next = new ListNode(val);
+    tail = tail.next;
+  }
+  return dummy.next; // real head (null if arr is empty)
+}
+
+const head = listFromArray([1, 2, 3]);
+```
+
+```text
+dummy (not returned)
+  │
+  ▼
+  0  →  1  →  2  →  3  → null
+        ▲
+        return this
+```
+
+Walk / print:
+
+```js
+function listToArray(head) {
+  const out = [];
+  let cur = head;
+  while (cur) {
+    out.push(cur.val);
+    cur = cur.next; // move to next box
+  }
+  return out;
+}
+```
+
+**Spoken 15s:** “A linked list is nodes with `val` and `next`. Head is the first node. Last `next` is `null`. I build it from an array with a dummy tail pointer.”
+
+Runnable: `practice/linkedList.js`
+
+---
+
+### Problem (reverse)
 
 Given the `head` of a singly linked list, reverse the list and return the **new head**.
 
@@ -438,6 +810,24 @@ Output: null
 
 Rewire `.next` backward with `prev`, `cur`, `next`.
 
+```text
+start:     null    1 → 2 → 3 → null
+           prev    cur
+
+save next, point cur backward, slide:
+
+           null ← 1    2 → 3 → null
+                  prev cur
+
+           null ← 1 ← 2    3 → null
+                      prev cur
+
+           null ← 1 ← 2 ← 3
+                          prev   cur=null
+
+return prev  (new head = 3)
+```
+
 ### Code
 
 ```js
@@ -453,7 +843,7 @@ function reverseList(head) {
   let cur = head;
 
   while (cur) {
-    const next = cur.next;
+    const next = cur.next; // save the rest BEFORE you break the arrow
     cur.next = prev;
     prev = cur;
     cur = next;
@@ -895,55 +1285,131 @@ function uniqueBy(arr, keyFn) {
 
 ---
 
-## 14. Group By (UI buckets)
+## 14. Group By (polyfill + UI buckets)
 
-### Problem
+Native today: **`Object.groupBy(iterable, callback)`** (ES2024). Older drafts had `Array.prototype.group` — interviews still say “write `groupBy` on Array.”
 
-Given a list of items and a key function, return an object that **groups items into buckets** by that key.
+### What native does
 
-Each key maps to an array of items that produced that key.
+```js
+const users = [
+  { name: 'A', role: 'admin' },
+  { name: 'B', role: 'user' },
+  { name: 'C', role: 'admin' },
+];
 
-### Examples
-
-```text
-Input:
-users = [
-  { name: "A", role: "admin" },
-  { name: "B", role: "user" },
-  { name: "C", role: "admin" }
-]
-keyFn = u => u.role
-
-Output:
-{
-  admin: [{ name: "A", role: "admin" }, { name: "C", role: "admin" }],
-  user:  [{ name: "B", role: "user" }]
-}
+Object.groupBy(users, (u) => u.role);
+// {
+//   admin: [{ name: 'A', ... }, { name: 'C', ... }],
+//   user:  [{ name: 'B', ... }]
+// }
 ```
+
+- Callback: `(element, index)` — same idea as `map`
+- Return: **plain object**, keys = `String(callback result)`
+- Does **not** mutate the input
+- Empty input → `{}`
+- Group **order**: first time a key appears (insertion order)
+
+Frontend: messages by date, products by category, table sections.
 
 ### Edge cases
 
 - Empty list → `{}`
-- Key is number/boolean — usually stringify for object keys
-- Preserve insertion order of groups if asked (Map)
+- Number / boolean keys → become `"1"`, `"true"` on a normal object
+- Need object/number keys without stringifying → use **`Map`**, not `{}`
+- Sparse arrays: skip holes (`i in this`) if they want spec-strict Array polyfill
+
+---
+
+### Polyfill A — `Object.groupBy` (prefer this in 2026)
+
+```js
+if (!Object.groupBy) {
+  Object.groupBy = function groupBy(items, fn) {
+    const out = Object.create(null); // no inherited `toString` key clashes
+    let i = 0;
+    for (const item of items) {
+      const key = String(fn(item, i++));
+      if (!Object.prototype.hasOwnProperty.call(out, key)) out[key] = [];
+      out[key].push(item);
+    }
+    return out;
+  };
+}
+
+Object.groupBy(users, (u) => u.role);
+```
+
+**Time `O(n)`**, **Space `O(n)`** (the buckets).
+
+**Why `Object.create(null)`:** `{}` has `__proto__`. A key named `"__proto__"` can break the object. Interviews like this one-liner.
+
+**Why `String(...)`:** object keys are strings. `groupBy(nums, n => n % 2)` → `"0"` / `"1"`.
+
+---
+
+### Polyfill B — `Array.prototype.groupBy` (if they say “on the array”)
+
+```js
+if (!Array.prototype.groupBy) {
+  Array.prototype.groupBy = function groupBy(fn) {
+    const out = Object.create(null);
+    for (let i = 0; i < this.length; i++) {
+      if (!(i in this)) continue; // sparse: skip holes
+      const key = String(fn.call(undefined, this[i], i, this));
+      if (!out[key]) out[key] = [];
+      out[key].push(this[i]);
+    }
+    return out;
+  };
+}
+
+[1, 2, 3, 4].groupBy((n) => (n % 2 === 0 ? 'even' : 'odd'));
+// { odd: [1, 3], even: [2, 4] }
+```
+
+Same as `map`: `this` is the array; callback gets `(value, index, array)`.
+
+**Do not** overwrite native if it exists (`if (!Array.prototype.groupBy)`).
+
+---
+
+### Helper (no prototype — safest in app code)
 
 ```js
 function groupBy(items, keyFn) {
   const out = Object.create(null);
-
+  let i = 0;
   for (const item of items) {
-    const key = String(keyFn(item));
+    const key = String(keyFn(item, i++));
     if (!out[key]) out[key] = [];
     out[key].push(item);
   }
-
   return out;
 }
-
-// groupBy(users, u => u.role)
 ```
 
-Frontend: group messages by date, products by category.
+### Map version (keys stay numbers / objects)
+
+```js
+function groupByMap(items, keyFn) {
+  const out = new Map();
+  let i = 0;
+  for (const item of items) {
+    const key = keyFn(item, i++);
+    if (!out.has(key)) out.set(key, []);
+    out.get(key).push(item);
+  }
+  return out;
+}
+```
+
+### Spoken 25s
+
+> Native `Object.groupBy` walks the list, calls `fn(item, i)`, buckets into a null-prototype object, keys stringified. Polyfill is one loop: create array per key, `push`. O(n). If they want Array method, same loop on `this`. I don’t mutate the source.
+
+Runnable: `practice/groupBy.js`
 
 ---
 
@@ -1103,18 +1569,11 @@ function chunk(arr, size) {
 
 ## 18. Deep Equal (often asked with deep clone)
 
-**Full guide:** [DEEP_EQUAL.md](./DEEP_EQUAL.md)
+**Full guide + walkthrough:** [DEEP_EQUAL.md](./DEEP_EQUAL.md)
 
 ### Problem
 
-Implement `deepEqual(a, b)` that returns `true` if `a` and `b` are deeply equal:
-
-- Same primitives (use `Object.is` for `NaN` / `-0` nuances if asked)
-- Same structure for objects/arrays
-- Nested values compared recursively
-- Arrays are not equal to plain objects even with same keys
-
-Often paired with deep clone in interviews.
+Implement `deepEqual(a, b)` → `true` if values are **structurally** equal (not just same reference).
 
 ### Examples
 
@@ -1122,23 +1581,23 @@ Often paired with deep clone in interviews.
 deepEqual({ a: 1, b: { c: 2 } }, { a: 1, b: { c: 2 } }) → true
 deepEqual([1, 2], [1, 2]) → true
 deepEqual([1, 2], { 0: 1, 1: 2 }) → false
-deepEqual(NaN, NaN) → true   // if using Object.is
+deepEqual(NaN, NaN) → true   // Object.is
 ```
 
-### Edge cases
+### Interview-simple solution (`Object.keys`)
 
-- `null` vs object
-- Symbol keys / non-enumerable — clarify scope
-- Cycles — need WeakMap pair tracking
+Write this first (same style as other DSA answers here):
 
 ```js
 function deepEqual(a, b) {
   if (Object.is(a, b)) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || !a || !b) return false;
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
+    return false;
+  }
   if (Array.isArray(a) !== Array.isArray(b)) return false;
 
-  const keysA = Reflect.ownKeys(a);
-  const keysB = Reflect.ownKeys(b);
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
   if (keysA.length !== keysB.length) return false;
 
   for (const key of keysA) {
@@ -1149,7 +1608,22 @@ function deepEqual(a, b) {
 }
 ```
 
-For cycles, add a WeakMap pair tracker (same idea as deepClone).
+### Algorithm (memorize)
+
+1. `Object.is` → true (primitives, same ref, `NaN`)
+2. Not both non-null objects → false
+3. Array vs object mismatch → false
+4. Same key count; each key recurse
+
+### Follow-ups
+
+| They ask… | You do… |
+|---|---|
+| Symbols / non-enumerable | `Reflect.ownKeys` instead of `Object.keys` |
+| Cycles | `WeakMap` of pairs already comparing |
+| Date | `getTime()` compare |
+
+**Spoken:** *“Same recursive walk as deep clone, but return boolean instead of a copy.”*
 
 ---
 
@@ -1542,6 +2016,8 @@ See also: `TRICKY_10_FRONTEND_QUESTIONS.md` Q9.
 
 ## 23. Promise Pool / Concurrency Limit (senior FE favorite)
 
+**Deep interview guide (GreatFrontEnd `mapAsyncLimit`):** [MAP_ASYNC_LIMIT.md](./MAP_ASYNC_LIMIT.md)
+
 ### Problem
 
 Given a list of items, an async `worker(item)`, and a concurrency `limit`, process all items such that **at most `limit` workers run at the same time**.
@@ -1622,6 +2098,241 @@ bus.emit("chat", "bye") // no-op
 
 ---
 
+# PART C2 — Extra FE coding drills (web 2025–26 + GOC)
+
+Sources: [FrontendAtlas DSA-for-FE](https://frontendatlas.com/guides/interview-blueprint/dsa-for-fe), [GreatFrontend must-know JS](https://www.greatfrontend.com/blog/10-must-know-javascript-coding-interview-questions), [StackInterview 30 JS coding 2026](https://stackinterview.dev/guides/javascript-coding-interview-questions-2026-with-optimized-solutions), GOC L1 (task-sort, debounce) + **your GOC round: 3Sum**.
+
+Most FE rounds are **utilities + data shaping**. **GOC / product companies** still throw **LeetCode-medium arrays** (Two Sum family, two pointers, **O(1) extra space** follow-up). Practice both.
+
+### Coverage map (don’t duplicate — drill the file)
+
+| Asked a lot | This repo |
+|---|---|
+| Two Sum / 3Sum | §1, **§1b** |
+| Longest unique substring | §2 |
+| Valid parentheses | §3 |
+| Flatten array / object | §5, §19 |
+| Merge intervals | §4 |
+| Kadane / House Robber | §9, §10 |
+| Binary search | §7 |
+| LRU | §11 + `LRU_CACHE.md` |
+| GroupBy / dedupe | §14, §13 |
+| Debounce / throttle / once | §20, `DEBOUNCE_THROTTLE.md`, `ONCE_FN.md` |
+| Deep clone / equal | §18, §21 |
+| EventEmitter / Promise pool | §24, §23 |
+| map/filter/reduce polyfill | `POLYFILLS_README.md` |
+| pipe/compose | `PIPE_COMPOSE.md` |
+| Topo / task deps + priority | `../goc/GOC_JS_TASK_SORT.md` |
+| productExceptSelf, LIS, compress | `DSA_CODING_ROUND_CLASSICS.md` |
+
+**GOC space follow-up pattern:** Map = O(n) extra. They often then want **sort + two pointers** or **in-place two pointers** = O(1) extra. Same family: Two Sum II, 3Sum, move zeros, container with most water.
+
+---
+
+## 25. Move zeros to the end (in-place, O(1) space)
+
+### Problem
+
+Array of numbers. **Move every `0` to the end.** Keep the **relative order** of the non-zeros. Do it **in place** — no second array (that would be O(n) extra space).
+
+LeetCode 283. Same “O(1) extra” follow-up energy as 3Sum / Two Sum sorted.
+
+```text
+Input:  [0, 1, 0, 3, 12]
+Output: [1, 3, 12, 0, 0]
+
+Input:  [0, 0, 1]
+Output: [1, 0, 0]
+```
+
+Ask: mutate the given array? (yes, classic). Must non-zeros stay in order? (**yes** — `[1,0,3]` → `[1,3,0]`, not `[3,1,0]`).
+
+---
+
+### What you are not allowed to do (O(n) space)
+
+```js
+function moveZeroesExtra(nums) {
+  const out = nums.filter((n) => n !== 0);
+  while (out.length < nums.length) out.push(0);
+  return out; // NEW array → O(n) extra. They reject this.
+}
+```
+
+---
+
+### Learn this version first (no swap — easy)
+
+**Job in two steps:**
+
+1. Copy every **non-zero** to the front, in order.  
+2. Fill whatever is left with **0**.
+
+`next` = “where the next non-zero should sit.” Start at `0`. Walk `i` through the whole array.
+
+```text
+nums = [0, 1, 0, 3, 12]
+        next=0
+
+i=0  value 0  → ignore
+i=1  value 1  → put at next  →  [1, 1, 0, 3, 12]  next=1
+i=2  value 0  → ignore
+i=3  value 3  → put at next  →  [1, 3, 0, 3, 12]  next=2
+i=4  value 12 → put at next  →  [1, 3, 12, 3, 12] next=3
+
+step 2: from next to end, write 0
+        [1, 3, 12, 0, 0]
+```
+
+You overwrote some cells. That’s OK — those old values were already copied left, or they were zeros we don’t need.
+
+```js
+function moveZeroes(nums) {
+  let next = 0; // next index that should get a non-zero
+
+  for (let i = 0; i < nums.length; i++) {
+    if (nums[i] !== 0) {
+      nums[next] = nums[i];
+      next++;
+    }
+  }
+
+  for (let i = next; i < nums.length; i++) {
+    nums[i] = 0;
+  }
+
+  return nums;
+}
+```
+
+Read it in English:
+
+- Scan left to right.  
+- If I see a real number, write it at `next` and move `next` one step right.  
+- When the scan is done, `next` is “how many non-zeros I kept.” Everything after that must be zero.
+
+**Time O(n). Extra space O(1).** This is enough for the interview.
+
+---
+
+### The swap one-liner (same idea, one loop)
+
+LeetCode often shows this. It **looks** harder. It is doing the same thing: put the next non-zero at `next`.
+
+Instead of “copy then fill zeros later,” it **swaps** so the zero at `next` jumps to where the non-zero was.
+
+```js
+function moveZeroesSwap(nums) {
+  let next = 0;
+  for (let i = 0; i < nums.length; i++) {
+    if (nums[i] !== 0) {
+      // put this non-zero at `next`; whatever was at `next` (often 0) goes to i
+      const temp = nums[next];
+      nums[next] = nums[i];
+      nums[i] = temp;
+      next++;
+    }
+  }
+  return nums;
+}
+```
+
+`[nums[next], nums[i]] = [nums[i], nums[next]]` is just that swap in one line.
+
+If `next === i`, you swap a cell with itself — nothing changes, then `next++`. That happens when the left side is already non-zeros.
+
+**In the interview, write the two-step version.** Mention swap only if they want one pass.
+
+---
+
+### Traps
+
+| Trap | Fix |
+|---|---|
+| `filter` into a new array | They want in-place |
+| Moving `next` when the value is `0` | Only move `next` when you place a non-zero |
+| Sort | Wrong complexity / can scramble order |
+
+**Spoken 20s:**
+
+> I keep an index `next` for the next non-zero slot. I copy every non-zero there in order, then fill the rest with zeros. No extra array.
+
+---
+
+## 26. Rotate array by `k` (in-place)
+
+```js
+function rotate(nums, k) {
+  const n = nums.length;
+  k %= n;
+  reverse(nums, 0, n - 1);
+  reverse(nums, 0, k - 1);
+  reverse(nums, k, n - 1);
+  return nums;
+}
+function reverse(a, l, r) {
+  while (l < r) {
+    [a[l], a[r]] = [a[r], a[l]];
+    l++;
+    r--;
+  }
+}
+```
+
+**O(n) time, O(1) extra.** Extra array is O(n) space — they may reject it.
+
+---
+
+## 27. Group anagrams
+
+```js
+function groupAnagrams(strs) {
+  const map = new Map();
+  for (const s of strs) {
+    const key = [...s].sort().join('');
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(s);
+  }
+  return [...map.values()];
+}
+```
+
+**O(n · k log k)** with sort-key. Count-array key `[26]` is O(n · k). Space O(n).
+
+---
+
+## 28. Container with most water (two pointers, O(1) extra)
+
+```js
+function maxArea(height) {
+  let l = 0;
+  let r = height.length - 1;
+  let best = 0;
+  while (l < r) {
+    best = Math.max(best, Math.min(height[l], height[r]) * (r - l));
+    if (height[l] < height[r]) l++;
+    else r--;
+  }
+  return best;
+}
+```
+
+**O(n) time, O(1) extra.** Move the **shorter** wall. Classic “we don’t need a Map.”
+
+---
+
+## 29. Reverse words in a sentence
+
+```js
+function reverseWords(s) {
+  return s.trim().split(/\s+/).reverse().join(' ');
+}
+```
+
+Ask: multiple spaces? punctuation? In-place on char array is the O(1) extra follow-up.
+
+---
+
 # PART D — Complexity + Interview Habits
 
 ---
@@ -1630,7 +2341,10 @@ bus.emit("chat", "bye") // no-op
 
 | Problem | Time | Space |
 |---|---|---|
-| Two Sum | O(n) | O(n) |
+| Two Sum | O(n) | O(n) Map |
+| Two Sum sorted | O(n) | O(1) |
+| **3Sum two pointers** | O(n²) | **O(1) extra** (no Map) |
+| 3Sum hash | O(n²) | O(n) |
 | Longest unique substring | O(n) | O(σ) |
 | Valid parentheses | O(n) | O(n) |
 | Merge intervals | O(n log n) | O(n) |
@@ -1676,9 +2390,9 @@ Never use `shift()` as a queue in hot loops for large n — use index pointer or
 
 | Day | Focus | Drill |
 |---|---|---|
-| 1 | Map/Set | Two Sum, uniqueBy, groupBy, anagram |
-| 2 | Sliding window / strings | longest unique substring, palindrome, first unique char |
-| 3 | Stack / intervals | parentheses, merge intervals |
+| 1 | Map/Set **and** two-pointer Two Sum | Two Sum Map, Two Sum sorted, **3Sum O(1) extra**, uniqueBy, groupBy |
+| 2 | Sliding window / strings | longest unique substring, palindrome, first unique char, reverse words |
+| 3 | Stack / intervals / in-place | parentheses, merge intervals, **move zeros, rotate, container** |
 | 4 | Recursion | flatten array(depth), flatten object, deepEqual, deepClone |
 | 5 | Trees | level order, max depth, invert |
 | 6 | Design + DP light | LRU, House Robber / stairs, Kadane |
@@ -1688,7 +2402,7 @@ Never use `shift()` as a queue in hot loops for large n — use index pointer or
 
 ## Spoken Opening For Any DSA Round
 
-> For frontend roles I focus on practical patterns: hash maps, sliding windows, stacks, recursion for nested data, and design utilities like LRU or debounce. I’ll clarify constraints, start from a correct approach, then optimize with the right data structure and explain complexity.
+> For frontend roles I focus on practical patterns: hash maps, sliding windows, stacks, recursion for nested data, and design utilities like LRU or debounce. **If they want O(1) extra space**, I switch Map → **sort + two pointers** (3Sum, Two Sum II). I’ll clarify constraints, start from a correct approach, then optimize and explain complexity.
 
 ---
 
@@ -1697,6 +2411,8 @@ Never use `shift()` as a queue in hot loops for large n — use index pointer or
 ### From classic DSA (your file + web)
 
 - [ ] Two Sum
+- [ ] Two Sum **sorted / O(1) space**
+- [ ] **3Sum two pointers** (no Map) — GOC
 - [ ] All pairs sum
 - [ ] Longest substring no repeat
 - [ ] Valid parentheses
@@ -1712,6 +2428,7 @@ Never use `shift()` as a queue in hot loops for large n — use index pointer or
 - [ ] LRU Cache
 - [ ] Multi-key object sort
 - [ ] Group anagrams
+- [ ] Move zeros / rotate array / container most water
 - [ ] First unique character
 - [ ] Remove duplicates / uniqueBy
 - [ ] Chunk array
@@ -1734,7 +2451,7 @@ Never use `shift()` as a queue in hot loops for large n — use index pointer or
 For Angular/React frontend interviews:
 
 - Expect **more utilities + data shaping** than hard graph DP
-- Still know **Two Sum / sliding window / stack / flatten / LRU** cold
+- Still know **Two Sum / 3Sum two pointers / sliding window / stack / flatten / LRU** cold
 - Always connect solution to UI reality (“group messages by day”, “cache API responses”, “flatten nested nav”)
 
 That combination sounds practical and strong.

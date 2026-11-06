@@ -1,16 +1,16 @@
-# Scenario Questions — Interview Cheat Sheet
+# Scenario Questions — Interview Cheat Sheet (Angular)
 
-One-screen revision. Full depth lives in `01`–`10` files.
+One-screen revision. Depth in `01`–`10`. All answers assume **Angular** unless they explicitly ask React.
 
 ---
 
-## Answer skeleton (use every time)
+## Answer skeleton
 
 1. Clarify constraints & metrics  
-2. Diagnose root causes  
-3. Propose layered redesign  
-4. Say **why A over B**  
-5. Incremental rollout  
+2. Diagnose (CD, Zone, HttpClient, store — not just “React re-renders”)  
+3. Layered redesign  
+4. **Why A over B**  
+5. Strangler rollout  
 6. Success metrics  
 
 ---
@@ -19,74 +19,73 @@ One-screen revision. Full depth lives in `01`–`10` files.
 
 | # | Choose this | Over that |
 |---|---|---|
-| 1 | Visibility-aware query cache + BFF/batch (+ optional SSE) | 50 independent `setInterval`s / dump all into Redux |
-| 2 | State-by-type standards + **one** global client store + Query for server | Keep Context+Redux+Zustand forever with sync effects |
-| 3 | Singleton shared platform deps; URL+API integration; runtime remote map | Shared mega-Redux; duplicate React; hardcoded remotes |
-| 4 | RTK Query / TanStack Query + thin Redux | Eternal Redux slices for 100 APIs |
-| 5 | Coalesce (rAF) + per-symbol store + virtualize + worker parse | setState/Redux every tick for full book |
-| 6 | `allowJs` strangler + new code TS-only + ratchet `strict` | Big-bang rewrite or `strict` day one |
-| 7 | SSG/ISR for marketing; CSR for app; fix meta/CWV | CSR-only “Google runs JS” for brochure site |
-| 8 | Server query + pagination/cursor + virtualization | Mount 100k DOM rows + memo hope |
-| 9 | CDN/split/BFF + modular monolith; MFE when org needs | MFE on day one “for 5M users” |
-| 10 | Build once / promote SHA artifact + canary + 1-click rollback | Laptop deploys; rebuild per env |
+| 1 | Visibility + `HttpClient`/`resource`/`shareReplay` + BFF/SSE; OnPush widgets | 50 `interval`s; dump widgets into NgRx |
+| 2 | State-by-type: HTTP/`resource` server; **one** NgRx **or** signal store; router URL; reactive forms | NgRx + Cart `BehaviorSubject` forever |
+| 3 | Native Federation; singleton Angular/RxJS/kernel; host `loadRemoteModule`; SHA manifest | Duplicate `@angular/core`; mega shared NgRx |
+| 4 | `resource`/HttpClient cache + thin NgRx | 100 `loadXSuccess` reducers |
+| 5 | WS **outside NgZone**; rAF coalesce; per-symbol signals; CDK virtual | `quotes = [...]` every tick; Zone per message |
+| 6 | `allowJs`/ratchet `strictTemplates`; standalone for new code | Big-bang rewrite; `strict` Monday |
+| 7 | Prerender marketing; CSR dashboard; `@angular/ssr` if per-request | CSR-only brochure; SSR the IDMS app |
+| 8 | Server cursor + CDK virtual + OnPush `track` | `*ngFor` 100k rows |
+| 9 | CDN/lazy/BFF + Nx modular monolith; MFE when teams need it | Federation “because 5M users” |
+| 10 | PR `ng build`+budgets; SHA artifact; runtime/stamp env; Nx affected on **build** | Laptop deploy; Nx on S3 sync |
 
 ---
 
-## 60-second pitches
+## 60-second pitches (Angular)
 
-**1 — Dashboard widgets**  
-Centralize server state (React Query), refresh only visible + tab-active widgets, batch via BFF/SSE, memoize slice subscriptions, bound caches/timers.
+**1 — Widgets**  
+Shared `HttpClient`/`resource` + `shareReplay`, poll only visible + tab-active, BFF/SSE, OnPush per widget, `takeUntilDestroyed`.
 
-**2 — Mixed state libs**  
-Standardize by state type: Query = server; one of RTK/Zustand = global client; Context = low-churn; URL = shareable; facades during strangler migration.
+**2 — Mixed state**  
+Server = HTTP/resource. One global client store. Facades. Router for shareable filters. Reactive forms.
 
-**3 — Module Federation**  
-Singleton React/UI; integrate via URL + backend; runtime versioned `remoteEntry` map; error boundaries; independent CDN deploys with contract tests.
+**3 — MFE**  
+Host + remotes expose `./Routes`. Singleton Angular. Manifest SHA. Nx compiles; Federation loads.
 
-**4 — Redux bloat**  
-API data ≠ Redux forever → RTK Query/TanStack Query with TTL/GC; Redux keeps client state; narrow selectors; stop persisting catalogs.
+**4 — Store bloat**  
+Stop putting GET bodies in NgRx. `resource` + GC with the view. Thin `selectSignal`.
 
-**5 — Stock WebSocket**  
-Subscribe to needed symbols; worker parse; rAF coalesce; per-symbol store; virtualized rows; imperative charts; pause when hidden.
+**5 — WS freeze**  
+`runOutsideAngular`, rAF batch, per-id signals, CDK virtual, pause when hidden.
 
-**6 — TS migration**  
-allowJs side-by-side; TS for all new code; type API boundaries first; small rename PRs; ratchet strictness; no freeze-the-world rewrite.
+**6 — TS / modernize**  
+Strangler, API types first, ratchet `strictTemplates`, no feature freeze.
 
-**7 — Marketing SEO**  
-Verify raw HTML has content; SSG/ISR for marketing routes; SSR when per-request; CSR for authenticated app; meta/canonical/sitemap/CWV.
+**7 — SEO**  
+Curl HTML. Prerender marketing. CSR `/app`. Meta at prerender time.
 
 **8 — 100k rows**  
-Users need access, not 100k nodes; server filter/sort/page; virtualize window; real grid if Excel-like; server bulk/export.
+Server page/cursor. CDK virtual. OnPush + `track`. Export on server.
 
-**9 — 50k → 5M**  
-Scale CDN/API/BFF and client perf first; modular monolith; extract MFEs for team autonomy later; flags/canaries; measure CWV + RPS.
+**9 — 5M**  
+CDN/lazy/BFF first. Nx boundaries. Native Federation for **teams**, not traffic.
 
 **10 — CI/CD**  
-CI gates on PR; immutable SHA artifacts; build once promote many; staging smoke; canary prod; runtime config + IaC; pointer rollback + flags.
+Lockfile CI, budgets, SHA on CDN, build once, rollback pointer. Nx on Actions/BUILD, not deploy sync.
 
 ---
 
-## Tradeoff phrases that sound senior
+## Tradeoff phrases
 
-- “That’s an org-scaling tool, not a traffic-scaling tool.” (MFEs)  
-- “Server state vs client state.” (Redux vs Query)  
-- “Build once, promote many.” (CI/CD)  
-- “Profile before offloading to a worker.” (perf)  
-- “Strangler fig, not big bang.” (migrations)  
-- “Google *can* render JS; marketing still wants HTML.” (SEO)
+- “That’s an org-scaling tool, not a traffic-scaling tool.” (MFE)  
+- “Server state vs client state.” (NgRx vs HttpClient)  
+- “Nx compiles; Federation loads.”  
+- “Build once, promote many.”  
+- “Run the socket outside Zone.”  
+- “Google *can* render JS; marketing still wants HTML.”  
 
 ---
 
-## Licious managerial punchlines
+## Licious punchlines (answer Angular)
 
-Full guide: [LICIOUS_MANAGERIAL_FRONTEND.md](./LICIOUS_MANAGERIAL_FRONTEND.md)
+Full: [LICIOUS_MANAGERIAL_FRONTEND.md](./LICIOUS_MANAGERIAL_FRONTEND.md)
 
 | Topic | Say |
 |---|---|
-| SSE vs WS | Push-only → SSE; bidirectional → WebSocket (how: HTTP Upgrade → 101 → frames) |
-| Bundles | Prod analyzer → route split / lazy / replace fat libs → CI budgets |
-| gRPC | Protobuf + HTTP/2; browser via BFF/gRPC-Web |
-| BE conflict | Evidence → user-first options → versioned contract + retro |
-| SSR SEO | Content in first HTML; hybrid by route; meta still required |
-| Tree-shaking | **DCE** on Module Dependency Graph via **Mark-and-Sweep** (ESM only; not just “removes unused code”) |
-| BFF | Per-client aggregate/adapt/auth layer over domain services |
+| SSE vs WS | Push-only → SSE (`EventSource`); duplex → WebSocket (`runOutsideAngular`) |
+| Bundles | `ng build` + source-map-explorer + **budgets**; `loadChildren` / `@defer`; lean imports |
+| gRPC | Browser via BFF/gRPC-Web |
+| SSR SEO | `@angular/ssr` / prerender; CSR for auth app |
+| Tree-shaking | DCE Mark-and-Sweep on ESM; secondary entry `material/button` |
+| BFF | Aggregate for `HttpClient` |

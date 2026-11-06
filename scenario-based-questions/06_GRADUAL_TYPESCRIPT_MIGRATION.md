@@ -1,194 +1,125 @@
-# Scenario 6 — Gradual JavaScript → TypeScript Migration (200 Files)
+# Scenario 6 — Gradual TypeScript / Angular modernization (no production freeze)
 
-**Prompt:** A legacy React application contains 200 JavaScript files. Management wants a gradual TypeScript migration without disrupting production. What strategy would you follow?
+**Prompt (classic):** 200 JavaScript files, gradual TS, don’t stop shipping.  
+**Angular reality:** Most Angular apps are **already `.ts`**. Interviewers still want **strangler + ratchet**. Map it to what you actually do: **JS leftovers, `strict`/`strictTemplates` off, NgModules → standalone, `any` APIs.**
 
 ---
 
 ## 1. Clarify
 
-- React version / bundler (CRA, Vite, Next, Webpack)?  
-- Existing tests? CI?  
-- Strictness appetite (`strict: true` now vs ratchet later)?  
-- Do we allow `any` temporarily?
+- Angular version / builder (esbuild vs Webpack)?  
+- `allowJs`? `strictTemplates`?  
+- Tests / CI `ng test` / `tsc`?  
+- Appetite: `any` temporarily?
 
-**Key management constraint:** **no big-bang rewrite, no production drama.**
-
----
-
-## 2. Strategy overview — “strangler + ratchet”
-
-```
-Allow JS + TS side by side
-  → Rename/migrate high-value files first
-  → Tighten compiler options over time
-  → Ban new JS
-  → Delete JS when coverage complete
-```
-
-Never: “stop feature work for 3 months to convert everything.”
+**Constraint:** no big-bang rewrite.
 
 ---
 
-## 3. Phase 0 — Foundation (week 1, low risk)
+## 2. Two prompts, one strategy
 
-1. Add TypeScript toolchain (`typescript`, `@types/react`, `@types/react-dom`)  
-2. Ensure bundler compiles `.ts`/`.tsx` **and** still builds `.js`  
-3. Add `tsconfig.json` with **pragmatic** initial settings:
+| They said | You treat as |
+|---|---|
+| React 200 JS files | `allowJs` + rename to `.ts` + ratchet `strict` |
+| Angular dashboard | Same **ratchet**: `strictTemplates`, standalone, typed `HttpClient`, kill `any` |
+
+```
+Side-by-side old + new
+  → New code = modern standard
+  → High-value files first (API models, shared utils)
+  → Tighten tsconfig over time
+  → Ban new legacy patterns
+```
+
+Never: freeze features for a quarter to convert everything.
+
+---
+
+## 3. Phase 0 — Foundation (Angular)
+
+1. `tsconfig` already there — turn **`allowJs`: true** if `.js` remains  
+2. Start with **pragmatic** flags:
 
 ```json
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "checkJs": false,
-    "strict": false,
-    "noImplicitAny": false,
-    "skipLibCheck": true,
-    "jsx": "react-jsx",
-    "isolatedModules": true,
-    "esModuleInterop": true
-  },
-  "include": ["src"]
+  "compilerOptions": { "strict": false, "noImplicitAny": false, "skipLibCheck": true },
+  "angularCompilerOptions": { "strictTemplates": false, "strictInjectionParameters": false }
 }
 ```
 
-4. CI: `tsc --noEmit` **non-blocking** at first (report only), then gating  
-5. Editor: team uses TS language service  
+3. CI: `ng build` already typechecks; add **non-blocking** report, then gate  
+4. **All new files `.ts`**, new components **standalone**
 
-**Why `allowJs: true`:** Mixed codebase is the whole point of gradual migration.  
-**Why not `strict: true` on day one:** 10,000 errors → team ignores TS or blocks shipping. Ratchet later.
+**Why not `strictTemplates: true` on day one:** Thousands of template errors → team ships `as any` everywhere.
 
 ---
 
-## 4. Phase 1 — Boundaries & types that pay rent
-
-Migrate / create types at **edges** first:
+## 4. Phase 1 — Boundaries that pay rent
 
 | Priority | What | Why |
 |---|---|---|
-| P0 | API response types / Zod schemas | Runtime bugs + contract clarity |
-| P0 | Shared domain models (`User`, `Cart`) | Used everywhere |
-| P1 | Utility modules (pure functions) | Easy wins, high reuse |
-| P1 | New features **TS-only** policy | Stops bleeding |
-| P2 | Leaf presentational components | Lower risk |
-| P3 | Hairy legacy containers | Last; needs tests |
+| P0 | API DTOs / `HttpClient` generics | Production bugs |
+| P0 | Domain models (`Device`, `User`) | Used everywhere |
+| P1 | `strictInjectionParameters` | DI mistakes |
+| P1 | New features standalone + typed | Stops bleeding |
+| P2 | Leaf components | Lower risk |
+| P3 | God NgModules / legacy JS | Last; needs tests |
 
-**Why types at API boundary before random components:**  
-Wrong API shapes cause production bugs; typing `Button` props helps less initially.
-
-**Optional force multiplier:** Zod/io-ts parse at boundary → types inferred, runtime guard.
+**AngularJS → Angular** (IDMS-shaped): strangler **iframe / hybrid** then nativize routes — that’s a **product** migration, not `allowJs`. Say it if they ask NUX; this scenario is **compiler + patterns**.
 
 ---
 
-## 5. Phase 2 — File migration pattern (repeatable)
+## 5. File pattern
 
-For each file:
+1. Tests green (`ng test` / Vitest)  
+2. Rename `foo.js` → `foo.ts`  
+3. Compile only — **no** drive-by refactor  
+4. Ticketed `any`  
+5. Small PRs  
 
-1. Ensure tests or add a thin characterization test if critical  
-2. Rename `Foo.js` → `Foo.tsx` (or `.ts`)  
-3. Fix only what’s needed to compile  
-4. Prefer accurate types; allow **local** escape hatches:
-
-```ts
-// temporary, ticketed
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const legacy: any = data;
-```
-
-5. Export typed public API; keep internals looser if needed  
-6. PR small (1–5 files), ship  
-
-**JSDoc as bridge (optional):**
-
-```js
-// checkJs can use JSDoc types before rename
-/** @param {string} id */
-export function getUser(id) {}
-```
-
-**Why rename+ship over parallel `Foo.ts` + delete later:**  
-Two files diverge. Rename in place with `allowJs` neighbors.
+Optional JSDoc `@param` with `checkJs` before rename.
 
 ---
 
-## 6. Phase 3 — Policy so you don’t regress
-
-- **ESLint:** `no-js-files` in `src/features/**` once a area is done  
-- **CI rule:** new files under `src/` must be `.ts`/`.tsx`  
-- **CODEOWNERS** / template: “TS for all new code”  
-- Track progress: `% of LOC in TS` dashboard  
-
----
-
-## 7. Phase 4 — Ratchet strictness
-
-Order of tightening (typical):
+## 6. Angular-specific ratchets (order)
 
 1. `noImplicitAny`  
 2. `strictNullChecks`  
-3. full `strict`  
-4. `noUncheckedIndexedAccess` (advanced)  
+3. `strictInjectionParameters`  
+4. **`strictTemplates`** (the Angular one they care about)  
+5. Standalone + `loadComponent` instead of new NgModules  
+6. `inject()` in new code; don’t rewrite all constructors in one PR  
 
-Turn on per-package or with `%` error budgets. Fix errors in burndown sprints interleaved with features.
-
-**Why ratchet over “strict from the start”:** Psychological + delivery safety. Strictness without migration path creates `as any` everywhere — worse than gradual honesty.
-
----
-
-## 8. Testing & production safety
-
-- Keep **existing Jest/RTL** green on each PR  
-- Add type tests for critical generics if needed (`expectTypeOf`)  
-- Canary deploy; TS compile is build-time — runtime risk is logic changes during cleanup, not “TS itself”  
-- Avoid drive-by refactors in migration PRs (“while I’m here…”) — that’s how you disrupt production  
-
-**Why separate “convert” from “refactor”:** Reviewers can focus; bisectability if bugs escape.
+**NgModule → standalone:** folder-by-folder; don’t convert the whole `AppModule` on a Friday.
 
 ---
 
-## 9. Team / process model
+## 7. Policy so you don’t regress
 
-| Model | Use when |
+- ESLint: no new `.js`; no new `NgModule` in `src/app/features/**` once that area is standalone  
+- CI: `ng build` + budgets  
+- Boy scout: touch file → tighten types  
+
+---
+
+## 8. Why this over that
+
+| Approach | Verdict |
 |---|---|
-| **Boy scout** — touch file → convert | Steady, low coordination |
-| **Dedicated % capacity** (e.g. 20%) | Management wants visible progress |
-| **Vertical slices** (Checkout flow fully TS) | Domain cohesion |
-
-I’d combine: **policy for new code** + **20% capacity** + **boy scout on touched files**.
-
----
-
-## 10. Why this over that
-
-| Approach | Why avoid / choose |
-|---|---|
-| Big-bang rewrite in a branch | Diverges from main; merge hell; high risk |
-| `// @ts-nocheck` on everything forever | Fake migration |
-| `strict` day one | Noise; `any` explosion |
-| Only migrate components, ignore API types | Misses highest bug ROI |
-| CheckJS everywhere first | Can work; slower UX than just renaming hot files |
-| Mixed allowJs + ratchet | **Chosen** — production-safe |
+| Big-bang branch | Merge hell |
+| `strictTemplates` day one | `any` explosion |
+| Only convert components, ignore HTTP types | Misses bugs |
+| allowJs + ratchet + standalone for new code | **Chosen** |
 
 ---
 
-## 11. Sample timeline (200 files, illustrative)
+## 9. 60-second spoken answer
 
-| Week | Outcome |
-|---|---|
-| 1 | TS pipeline, allowJs, new code = TS |
-| 2–3 | Domain types + API layer |
-| 4–8 | Convert utils + shared components |
-| ongoing | Feature folders strangler |
-| later | Enable `strict`, delete `allowJs` when 0 JS left |
-
----
-
-## 12. 60-second spoken answer
-
-> I’d run a **gradual strangler migration**: enable TypeScript beside JS with `allowJs`, keep production shipping, and mandate **all new code in TS**. I’d type **API/domain boundaries first**, then convert files in small PRs without drive-by refactors, using temporary `any` only with a ratchet plan. Progress is enforced by lint/CI, and we tighten `strict` options over time once error count is manageable. The goal is continuous delivery the whole way—not a freeze-the-world rewrite.
+> Angular is already TypeScript, so I’d run a **strangler ratchet**: keep shipping, **all new code** standalone + typed, and migrate **API models first**. If JS files exist, `allowJs` and rename in small PRs with no drive-by refactors. I’d turn on **`strictTemplates` and `strict` only after the error count is human** — not Monday morning. NgModules die feature-by-feature. CI `ng build` is the gate. Same story as a React JS→TS migrate: **no freeze-the-world rewrite**.
 
 ---
 
 ## Related
 
-- Scenario 10 — CI gates for `tsc`  
-- Scenario 9 — migrations coexist with scaling work
+- [ANGULAR_UPGRADE_PLAYBOOK.md](../angular-interview-prep/ANGULAR_UPGRADE_PLAYBOOK.md)  
+- Scenario 10 — `ng build` / budgets as gates

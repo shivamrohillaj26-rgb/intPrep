@@ -2,6 +2,8 @@
 
 Questions shared from a **managerial round** at Licious. Mix of deep tech, system design, project storytelling, and behavioral judgment.
 
+**Answer in Angular** (HttpClient, RxJS, `loadChildren`, `@angular/ssr`, NgZone). If they say React, translate — don’t stay in React Query / Next.
+
 Use this structure for every answer:
 
 1. **One-liner definition**  
@@ -55,22 +57,28 @@ WebSocket:
 
 ### Tiny examples
 
-**SSE — order status / live notifications (Licious-style):**
+**SSE — order status / live notifications (Angular):**
 
-```js
-const es = new EventSource('/api/order-status?id=123');
-es.onmessage = (e) => {
-  const { status } = JSON.parse(e.data); // preparing → out_for_delivery
-  updateBanner(status);
-};
+```ts
+readonly status = toSignal(
+  new Observable<string>((sub) => {
+    const es = new EventSource('/api/order-status?id=123');
+    es.onmessage = (e) => sub.next(JSON.parse(e.data).status);
+    return () => es.close();
+  }).pipe(takeUntilDestroyed()),
+);
 ```
 
-**WebSocket — chat / collaborative cart / driver location both ways:**
+**WebSocket — chat / driver location (pump outside Zone, see scenario 5):**
 
-```js
-const ws = new WebSocket('w3s://api.example.com/live');
-ws.onmessage = (e) => applyPatch(JSON.parse(e.data));
-ws.send(JSON.stringify({ type: 'ping', t: Date.now() }));
+```ts
+this.ngZone.runOutsideAngular(() => {
+  const ws = new WebSocket('wss://api.example.com/live');
+  ws.onmessage = (e) => {
+    const patch = JSON.parse(e.data);
+    this.ngZone.run(() => this.applyPatch(patch));
+  };
+});
 ```
 
 ### When to choose which
@@ -120,7 +128,7 @@ ws.send(JSON.stringify({ type: 'ping', t: Date.now() }));
    - Angular: `source-map-explorer` / budget in `angular.json`  
 3. Look for:
    - Giant dependencies (moment, lodash full, chart libs)  
-   - Duplicate packages (two React copies, two RxJS)  
+   - Duplicate packages (two `@angular/core`, two RxJS)  
    - Eager routes that should be lazy  
    - Unused exports pulled in (sideEffects / bad imports)  
 4. Track **budgets** in CI — fail PR if main chunk grows > N KB  
@@ -137,7 +145,7 @@ npx source-map-explorer dist/**/*.js
 
 | Lever | Example |
 |---|---|
-| **Code split by route** | `React.lazy` / Angular `loadChildren` / dynamic `import()` |
+| **Code split by route** | Angular `loadChildren` / `loadComponent` / `@defer` / dynamic `import()` |
 | **Lazy heavy widgets** | Chart, editor, PDF only on open |
 | **Tree-shake friendly imports** | `import debounce from 'lodash-es/debounce'` not full lodash |
 | **Replace heavy libs** | `date-fns` / `dayjs` instead of `moment` |
@@ -326,7 +334,7 @@ CSR:
 SSR:
   HTML already has title, H1, product text, links
   Faster first contentful paint for content pages
-  Hydration attaches React/Angular event handlers
+  Hydration attaches Angular event handlers (`@angular/ssr`)
 ```
 
 ### SEO benefits (be precise)
@@ -368,7 +376,7 @@ Answer with **metric → action → result**. Prepare 3 real bullets from your c
    > Virtualized long order/history lists; DOM nodes from 10k → ~30 visible. Scroll INP stable.
 
 3. **Network / data**  
-   > Stale-while-revalidate with React Query; deduped product GETs on PLP. Requests/page −40%.
+   > `shareReplay` / `resource()` so product GETs on PLP dedupe. Requests/page −40%.
 
 4. **Images**  
    > Responsive `srcset` + WebP via CDN; LCP image preload. LCP p75 3.8s → 2.4s.

@@ -389,84 +389,84 @@ let arr = [1,2,3,1];
 
 // Flatten object
 
-let obj  = {
-    user: {
-      id: 101,
-      name: 'Jane Doe',
-      isVerified: false,
-      nickname: '',
-      settings: { is_active: true, theme: null, data: {}, preferences: {} },
-      tags: [ 'admin', 'dev' ],
-      roles: [],
-      metadata: undefined
-    },
-    address: {
-      street: 'wood nagar',
-      town: 'chirala',
-      district: 'LA',
-      geo: { lat: 15.123, lng: 80.456 }
-    },
-    projects: [ { id: 1, name: 'AI Project' }, { id: 2, name: 'Web App' } ]
-  }
+// let obj  = {
+//     user: {
+//       id: 101,
+//       name: 'Jane Doe',
+//       isVerified: false,
+//       nickname: '',
+//       settings: { is_active: true, theme: null, data: {}, preferences: {} },
+//       tags: [ 'admin', 'dev' ],
+//       roles: [],
+//       metadata: undefined
+//     },
+//     address: {
+//       street: 'wood nagar',
+//       town: 'chirala',
+//       district: 'LA',
+//       geo: { lat: 15.123, lng: 80.456 }
+//     },
+//     projects: [ { id: 1, name: 'AI Project' }, { id: 2, name: 'Web App' } ]
+//   }
 
-isPlainObject = (obj)=>{
-    return (
-        obj !==null && typeof obj ==="object" && !Array.isArray(obj)
-    )
-}
+// isPlainObject = (obj)=>{
+//     return (
+//         obj !==null && typeof obj ==="object" && !Array.isArray(obj)
+//     )
+// }
 // console.log(typeof [1,2,3,4,5])
-function flattenObject(obj){
-    let result = {};
+// function flattenObject(obj){
+//     let result = {};
 
-    function flatten(obj , prefix){
+//     function flatten(obj , prefix){
 
-        if(isPlainObject(obj) && Object.keys(obj).length === 0){
-            return;
-        }
-        if(!isPlainObject(obj) && prefix){
-            result[prefix] = obj;
-            return;
-        }
+//         if(isPlainObject(obj) && Object.keys(obj).length === 0){
+//             return;
+//         }
+//         if(!isPlainObject(obj) && prefix){
+//             result[prefix] = obj;
+//             return;
+//         }
 
-        for(let key in obj){
-            let newPrefix = prefix ? prefix + "." + key : key;
-            flatten(obj[key] , newPrefix);
-        }
+//         for(let key in obj){
+//             let newPrefix = prefix ? prefix + "." + key : key;
+//             flatten(obj[key] , newPrefix);
+//         }
 
-        return;
-    }
+//         return;
+//     }
 
-    flatten(obj , "");
-    return result;
-}
+//     flatten(obj , "");
+//     return result;
+// }
 
-let result = flattenObject(obj);
-console.log(result);
+// let result = flattenObject(obj);
+// console.log(result);
 
-function unflattenObject(obj){
+// function unflattenObject(obj){
     
-    let result = {}
+//     let result = {}
 
-    function unflatten(obj){
+//     function unflatten(obj){
 
-        for(let key in obj){
-            let keyArray = key.split(".");
-            let curr = result;
-            for(let i=0;i<keyArray.length-1;i++){
-                if(typeof curr[keyArray[i]] !== "object"){
-                    curr[keyArray[i]] = {};
-                }
-                curr = curr[keyArray[i]];
-            }
-            curr[keyArray[keyArray.length-1]] = obj[key];
-        }
-        return result;
-    }
+//         for(let key in obj){
+//             let keyArray = key.split(".");
+//             let curr = result;
+//             for(let i=0;i<keyArray.length-1;i++){
+//                 if(typeof curr[keyArray[i]] !== "object"){
+//                     curr[keyArray[i]] = {};
+//                 }
+//                 curr = curr[keyArray[i]];
+//             }
+//             curr[keyArray[keyArray.length-1]] = obj[key];
+//         }
+//         return result;
+//     }
 
-    unflatten(obj);
-    return result;
-}
-console.log(unflattenObject(result));
+//     unflatten(obj);
+//     return result;
+// }
+// console.log(unflattenObject(result));
 
 
 // Event Emitter

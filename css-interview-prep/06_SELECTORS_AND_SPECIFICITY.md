@@ -51,6 +51,8 @@ input::placeholder { color: #999; }
 
 Interview tip: use `::` for pseudo-elements, `:` for pseudo-classes.
 
+**Full list, traps, Angular `:host`, `:has` / `:where`:** [14_PSEUDO_CLASSES_PSEUDO_ELEMENTS.md](./14_PSEUDO_CLASSES_PSEUDO_ELEMENTS.md). **GOC spoken sheet:** [../goc/GOC_CSS.md](../goc/GOC_CSS.md).
+
 ---
 
 ## 4. Specificity (Critical Interview Topic)

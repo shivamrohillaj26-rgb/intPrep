@@ -1,122 +1,94 @@
-# Scenario 4 — 100+ API Responses Stored in Redux (Store Bloat)
+# Scenario 4 — 100+ API Responses in NgRx (Store Bloat)
 
-**Prompt:** A team stores responses from 100+ APIs inside Redux. The store size keeps growing and performance is degrading. What would you change?
+**Prompt:** A team stores responses from 100+ APIs inside NgRx (or a giant `BehaviorSubject` tree). The store keeps growing and the UI degrades. What would you change?
+
+*(If they say Redux: same mistake — **server cache ≠ client store**. Answer Angular.)*
 
 ---
 
 ## 1. Clarify
 
-- Is data normalized or giant nested blobs?  
-- Do they keep *every* historical response?  
-- Are lists paginated or “fetch all”?  
-- Who reads this data — many connected components?  
-- Persist to `localStorage`? (often makes it worse)
+- Nested blobs vs `createEntityAdapter`?  
+- Every historical response kept?  
+- Persist `localStorage` via `meta-reducers`?  
+- Who selects — `select(s => s)` wide?
 
 ---
 
 ## 2. Diagnose
 
-### Why performance dies
+1. **Huge store** — DevTools serialize, `localStorage` quota, structural sharing on fat trees  
+2. **Wide selectors** — `store.select(s => s)` or one `AppState` signal → mass CD  
+3. **No TTL/GC** — visited pages stay forever  
+4. **Duplication** — same `User` in `auth` + `users` + `orders` slices  
+5. **NgRx used as HttpClient** without staleTime / tags  
 
-1. **Huge store serialization** — DevTools, persistence, cloning  
-2. **Broad subscriptions** — `useSelector(s => s)` or poorly memoized selectors → mass re-renders  
-3. **Immutable updates on large trees** — expensive structural sharing churn  
-4. **Retained unused API data** — visited pages never GC’d  
-5. **Duplication** — same entity in multiple slices  
-6. **Redux used as a network cache** without TTL / invalidation semantics  
+> **Server state was modeled as eternal global client state.**
 
-### Root conceptual mistake
-
-> **Server state was modeled as eternal client global state.**
-
-Redux is great for **client** state with clear update logic.  
-A full HTTP cache needs: stale time, GC, dedupe, retries, tags — that’s **React Query / RTK Query**, not hand-fed slices for 100 endpoints.
+NgRx is excellent for **events + client workflows**. An HTTP cache needs stale time, GC, dedupe, retries — that’s **`HttpClient` + `resource` / RxJS cache**, not 100 `createReducer`s.
 
 ---
 
-## 3. What I would change (architecture)
+## 3. What I would change
 
-### Step 1 — Split state types
+### Split types
 
-| Keep in Redux (or Zustand) | Move out of Redux |
+| Keep in NgRx / signal store | Move out |
 |---|---|
-| Auth UI flags, wizard step | Product lists, search results |
-| Feature toggles (client) | Order history pages |
-| Truly cross-cutting client UX | Any “last API response” blobs |
-| Optimistic UI overlays | Paginated collections |
+| Wizard step, UI flags, feature toggles | Product lists, search hits |
+| Optimistic overlay on cart | “Last GET /orders” blobs |
+| Session **mirror** if needed | Paginated collections |
 
-### Step 2 — Introduce a proper server cache
-
-**Preferred migrations:**
-
-**A. RTK Query** (if already on Redux Toolkit)  
-- Least cultural shock  
-- Endpoints → `createApi`  
-- Automatic caching, tags, `keepUnusedDataFor`  
-
-**B. TanStack Query**  
-- Excellent DX; Redux shrinks to true client state  
+### Proper server cache
 
 ```ts
-// before: dispatch(setProducts(await api.getProducts()))
-// after:
-const { data } = useGetProductsQuery({ page, q });
+// before
+this.store.dispatch(loadProductsSuccess({ products }));
+
+// after
+products = resource({
+  params: () => ({ page: this.page() }),
+  loader: ({ params }) => firstValueFrom(this.http.get('/api/products', { params })),
+});
 ```
 
-**Why RTK Query over inventing cache in slices:**  
-You’d reimplement invalidation badly. RTK Query is the “Redux-native” correct cache.
+Or `HttpClient` + `shareReplay` + refresh on params. Optional: **TanStack Query Angular** / **NgRx Query-style** libs — mention, don’t require.
 
-**Why not “just normalize with entity adapter and keep all 100 APIs”:**  
-Normalization helps, but without GC/staleness you still retain the world forever. Normalization is necessary but not sufficient.
+**Why not `createEntityAdapter` for all 100 APIs and keep them:** Normalization helps identity; **without GC you still retain the world**. Necessary, not sufficient.
 
-### Step 3 — Normalize what remains
+### GC / caps
 
-If some domain state must stay client-side:
+- Don’t persist catalogs — persist allowlisted keys only (prefs, not lists)  
+- Paginate; never `concat` unbounded pages in a reducer  
+- LRU / drop search cache on navigate  
+- `takeUntilDestroyed` so unused HTTP isn’t written into store “just in case”
 
-```ts
-{
-  products: { byId: {}, allIds: [] },
-  // not: products: [ {..., nested vendor: {...,} }, × 10_000 ]
-}
-```
-
-Use `createEntityAdapter`. Selectors via **Reselect** / RTK listeners.
-
-### Step 4 — Garbage collection policies
-
-- `keepUnusedDataFor: 60` (seconds) on queries  
-- Don’t persist entire store — persist **allowlisted** keys only (token prefs, not catalogs)  
-- Paginate; never `concat` unbounded pages into one array  
-- Cap caches (LRU) for search  
-
-### Step 5 — Fix subscription surface
+### Narrow subscriptions
 
 ```ts
 // ❌
-const state = useSelector((s) => s);
+this.store.select((s) => s).subscribe((s) => (this.vm = s));
 
 // ✅
-const total = useSelector((s) => s.cart.total);
-// or RTK Query hook — component only re-renders when its data changes
+total = this.store.selectSignal(selectCartTotal);
+// or resource() — component only dirties when that data changes
 ```
 
-### Step 6 — Delete aggressively
+OnPush + `selectSignal` on a **slice**.
 
-Migration definition of done: **slice removed**, not “also write to Query.”  
-Dual-writing temporarily OK; long-term dual write is Scenario 2’s failure mode.
+### Dual-write then delete
+
+Facade reads Query/resource; when UI is off the slice, **remove the reducer**. Done = slice gone, not “also HTTP.”
 
 ---
 
-## 4. Target picture
+## 4. Picture
 
 ```
-Before:
-  API → reducer → mega store → many components re-render
-
-After:
-  API → RTK Query / TanStack Query cache (TTL + GC)
-  Redux ← thin client state only
-  Components → hooks/selectors with narrow subscriptions
+Before:  API → Effect → mega Store → Default CD everywhere
+After:   API → HttpClient / resource (GC with the view)
+         NgRx ← thin client state
+         Components → selectSignal / async pipe, OnPush
 ```
 
 ---
@@ -125,37 +97,23 @@ After:
 
 | Option | Verdict |
 |---|---|
-| Keep Redux, add Reselect everywhere | Helps renders; **doesn’t fix** unbounded growth |
-| Persist store to localStorage | Often **worsens** memory + quota issues |
-| Normalize only | Good partial step; still need TTL/GC |
-| RTK Query / TanStack Query | **Correct** home for 100 API responses |
-| Move all to Context | Worse re-render profile |
-| “Use Immer more carefully” | Micro-opt; wrong layer |
-
-**Chosen approach:**  
-> Migrate API data to **RTK Query (or TanStack Query)**, shrink Redux to client state, normalize leftovers, narrow selectors, stop persisting server caches, add GC/TTL. Measure store size and React commit times before/after.
+| Keep NgRx, add more `createSelector` | Helps CD; **doesn’t** cap memory |
+| Persist whole store | Usually **worse** |
+| Entity adapter only | Partial |
+| HttpClient / `resource` for APIs | **Correct** home |
+| Move all to a root `BehaviorSubject` | Same bloat, worse DevTools |
+| Context equivalent (provide giant object) | Same re-render story |
 
 ---
 
-## 6. Rollout
+## 6. 60-second spoken answer
 
-1. Measure: store JSON size, action rate, React profiler  
-2. Pick hottest 5 endpoints → RTK Query  
-3. Facade hooks so UI doesn’t care  
-4. Remove old reducers  
-5. Ban pattern via lint: `createSlice` for `*Response` naming  
-6. Revisit persistence whitelist  
-
----
-
-## 7. 60-second spoken answer
-
-> Storing 100+ API responses in Redux turns the store into an unbounded network cache without TTL or GC, so memory grows and wide selectors re-render half the app. I’d reclassify that as **server state** and move it to **RTK Query or TanStack Query**, keep Redux only for true client state, normalize any remaining entities, narrow subscriptions, and stop persisting catalogs. Quick wins are `keepUnusedDataFor`, pagination caps, and deleting dual-writes after migration.
+> A hundred API blobs in NgRx is an unbounded **network cache** with no TTL, so memory grows and wide selects retrigger **change detection** across the app. I’d treat that as **server state**: **HttpClient / `resource`**, keep NgRx for true **client** workflows, normalize only what must stay, `selectSignal` on thin slices, and stop persisting catalogs. Quick wins: paginate, delete dual-writes, ban `loadXSuccess` for throwaway lists.
 
 ---
 
 ## Related
 
-- Scenario 1 — dashboard polling belongs in query layer  
-- Scenario 2 — standardize state by type  
-- Scenario 5 — high-freq ticks should NOT all land in Redux either
+- Scenario 1 — widget polling belongs in HTTP/RxJS  
+- Scenario 2 — taxonomy  
+- [ANGULAR_NGRX_DATA_FLOW.md](../angular-interview-prep/ANGULAR_NGRX_DATA_FLOW.md)

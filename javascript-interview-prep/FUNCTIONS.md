@@ -425,3 +425,5 @@ curry = f(a)(b)(c)
 > A closure keeps the **variable binding**. If that binding isn’t updated (or you closed over an old snapshot/state), you read an **outdated value** — a logic bug. A **memory leak** is different: references prevent GC (listeners, timers, unbounded caches), so memory grows. Fix stale data by reading latest state/signals; fix leaks by cleanup.
 
 See also: `TRICKY_10_FRONTEND_QUESTIONS.md` Q4.
+
+**Deep scope guide:** [SCOPES.md](./SCOPES.md) — lexical scope, TDZ, scope chain, modules, output drills.
