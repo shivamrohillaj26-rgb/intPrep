@@ -1,0 +1,10 @@
+.custom-button-demo {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background-color: white;
+    width: 100%;
+}

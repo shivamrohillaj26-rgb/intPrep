@@ -1,0 +1,20 @@
+<div class="file-explorer">
+  <div class="file-explorer-header">
+    <h1>File Explorer (Option 1: Lifted State)</h1>
+    <div class="actions">
+      <button type="button" (click)="expandAll()">Expand All</button>
+      <button type="button" (click)="collapseAll()">Collapse All</button>
+    </div>
+  </div>
+  <div class="file-explorer-body">
+    @for (node of data; track node.id) {
+      <app-node-lifted
+        [nodes]="node"
+        [expandedIds]="expandedIds()"
+        (toggleExpand)="toggleExpand($event)"
+        (ensureExpanded)="ensureExpanded($event)"
+        (onDeleteNode)="deleteNode($event)"
+      />
+    }
+  </div>
+</div>

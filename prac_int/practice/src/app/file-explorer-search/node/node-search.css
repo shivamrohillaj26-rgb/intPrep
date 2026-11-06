@@ -1,0 +1,8 @@
+.clickable span {
+  cursor: pointer;
+}
+
+.match {
+  background: #ffe566;
+  font-weight: 600;
+}

@@ -1,0 +1,16 @@
+.file-explorer-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.file-explorer-header input {
+  min-width: 220px;
+  padding: 0.4rem 0.6rem;
+}
+
+.empty {
+  opacity: 0.7;
+  padding-left: 20px;
+}
